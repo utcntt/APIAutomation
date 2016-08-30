@@ -1,0 +1,24 @@
+﻿{
+  "version": "1.0.0-*",
+  "dependencies": {
+    "Microsoft.Extensions.Configuration": "1.0.0",
+    "Microsoft.Extensions.Configuration.Json": "1.0.0",
+    "Microsoft.Extensions.DependencyModel": "1.0.0",
+    "NETStandard.Library": "1.6.0",
+    "NUnit": "3.4.1",
+    "System.Collections.NonGeneric": "4.0.1",
+    "System.ComponentModel.Primitives": "4.1.0",
+    "System.Diagnostics.TextWriterTraceListener": "4.0.0",
+    "System.Dynamic.Runtime": "4.0.11",
+    "System.Linq.Queryable": "4.0.1",
+    "System.Net.Requests": "4.0.11",
+    "System.Xml.XmlSerializer": "4.0.11",
+    "TestLibrary": "1.0.0-*"
+  },
+  
+  "frameworks": {
+    "netstandard1.6": {
+      "imports": "dnxcore50"
+    }
+  }
+}

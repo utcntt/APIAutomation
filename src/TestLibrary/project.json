@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0-*",
+  "dependencies": {
+    "Microsoft.Extensions.Configuration": "1.0.0",
+    "Microsoft.Extensions.Configuration.Json": "1.0.0",
+    "Microsoft.Extensions.DependencyModel": "1.0.0",
+    "NETStandard.Library": "1.6.0",
+    "NUnit": "3.4.1",
+    "System.Collections.NonGeneric": "4.0.1",
+    "System.ComponentModel.Primitives": "4.1.0",
+    "System.Diagnostics.TextWriterTraceListener": "4.0.0",
+    "System.Dynamic.Runtime": "4.0.11",
+    "System.Linq.Queryable": "4.0.1",
+    "System.Net.Requests": "4.0.11"
+  },
+  "buildOptions": {
+    "embed": [
+      "Log/config.jpg",
+      "Log/download.png",
+      "Log/http-icon.png",
+      "Log/icons.png",
+      "Log/test_on.gif",
+      "Log/testcase.jpg",
+      "Log/testcase32x32.png",
+      "Log/testReportScrip.js",
+      "Log/testReportStyles.css"
+    ]    
+  },
+  "frameworks": {
+    "netstandard1.6": {
+      "imports": "dnxcore50"
+    }
+  }
+}
