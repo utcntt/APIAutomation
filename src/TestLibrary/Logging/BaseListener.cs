@@ -111,13 +111,21 @@ namespace TestLibrary
             }
             else if (category.Equals("fixture") && message.Equals("Setup"))
             {
-                PrintSetUpDescription();
+                PrintFixtureSetUp();
             }
             else if (category.Equals("fixture") && message.Equals("Teardown"))
             {
+                PrintFixtureTearDown();
+            }
+            else if (category.Equals("test") && message.Equals("Setup"))
+            {
+                PrintSetUpDescription();
+            }
+            else if (category.Equals("test") && message.Equals("Teardown"))
+            {
                 PrintTeardownDescription();
             }
-            else if (category.Equals("fixture") && message.Equals("Sumary"))
+            else if (category.Equals("test") && message.Equals("Sumary"))
             {
                 PrintSumary();
             }
@@ -125,7 +133,7 @@ namespace TestLibrary
             {
                 PrintRequestData(message);
             }
-            else 
+            else
             {
                 Write(FormatMessage(message, category));
                 Writer.WriteLine();
@@ -522,6 +530,21 @@ namespace TestLibrary
             WriteLine(TestCaseDescriptionLine);
             WriteLine(info);
             WriteLine(TestCaseDescriptionLine);
+
+        }
+
+        protected virtual void PrintFixtureSetUp()
+        {
+            WriteLine(TestCaseDescriptionLine);
+            TestContext context = TestContext.CurrentContext;
+            PrintTestCaseDescriptionLine("Test fixture", context.Test.FullName);
+        }
+
+        protected virtual void PrintFixtureTearDown()
+        {
+            WriteLine(TestCaseDescriptionLine);
+            TestContext context = TestContext.CurrentContext;
+            PrintTestCaseDescriptionLine("End Test fixture", context.Test.FullName);
         }
 
         protected string GetTableCell(string info, int maxLength = TitleLength)

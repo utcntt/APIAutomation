@@ -36,10 +36,10 @@ namespace TestLibrary
             this.Writer.WriteLine("<head>");
             this.Writer.WriteLine("<meta http-equiv=\"Content-Type\" content=\"text/html; charset= utf-8\" />");
             this.Writer.WriteLine("<meta name = \"language\" content = \"ja\" />");
-            
-            
+
+
             //this.Writer.WriteLine();
-            
+
 
             AddStyleSheet("testReportStyles.css");
             AddScript("testReportScript.js");
@@ -78,26 +78,27 @@ namespace TestLibrary
             return str.ToString();
         }
 
-        protected override void PrintTestCaseDescription(Dictionary<string,string> newMethod)
+        protected override void PrintTestCaseDescription(Dictionary<string, string> newMethod)
         {
             //StringBuilder str = new StringBuilder();
-            if (isUlOpen)
-            {
-                this.Writer.WriteLine("</ul>");
-                this.Writer.WriteLine("</li>");
-                isUlOpen = false;
-            }
             if (isRequestUlOpen)
             {
                 this.Writer.WriteLine("</ul>");
                 this.Writer.WriteLine("</li>");
                 isRequestUlOpen = false;
             }
+            if (isTestCaseUlOpen)
+            {
+                this.Writer.WriteLine("</ul>");
+                this.Writer.WriteLine("</li>");
+                isTestCaseUlOpen = false;
+            }
+
             string temp = "Testcase" + newMethod["Number"];
-            this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" title=\"{2}\" class=\"testcase\"><b>{1}</b></label>", 
-                temp, newMethod["Number"]+ "."+ newMethod["FullName"], newMethod["Description"]));
+            this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" title=\"{2}\" class=\"testcase\"><b>{1}</b></label>",
+                temp, newMethod["Number"] + "." + newMethod["FullName"], newMethod["Description"]));
             this.Writer.WriteLine("<ul>");
-            isUlOpen = true;
+            isTestCaseUlOpen = true;
             this.Writer.WriteLine(string.Format("<li>{0}</li>", "<b>Category:</b>&nbsp;  " + newMethod["Category"]));
             this.Writer.WriteLine(string.Format("<li>{0}</li>", "<b>Description:</b>&nbsp;  " + newMethod["Description"]));
             //this.Writer.Write(str);
@@ -137,21 +138,18 @@ namespace TestLibrary
                 this.Writer.WriteLine("</li>");
                 isRequestUlOpen = false;
             }
-            if (isUlOpen)
+            if (isTestCaseUlOpen)
             {
                 this.Writer.WriteLine("</ul>");
                 this.Writer.WriteLine("</li>");
-                isUlOpen = false;
+                isTestCaseUlOpen = false;
             }
             if (tempStr.Length > 0)
             {
-                StringBuilder str = new StringBuilder();
-                string temp = "TestFixture."+ tempStr[0];
-                this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" class=\"fixture\">{1}</label>", 
-                    temp, "<b>Test Fixture:</b>&nbsp;" + tempStr[0]));
+                string temp = "TestFixture." + tempStr[0];
+                this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" class=\"fixture\">{1}</label>",
+                    temp, "<b>Test Project:</b>&nbsp;" + tempStr[0]));
                 this.Writer.WriteLine("<ul>");
-                isUlOpen = true;
-                this.Writer.WriteLine(str);
             }
         }
 
@@ -167,22 +165,64 @@ namespace TestLibrary
                 this.Writer.WriteLine("</li>");
                 isRequestUlOpen = false;
             }
-            if (isUlOpen)
+            if (isTestCaseUlOpen)
             {
                 this.Writer.WriteLine("</ul>");
                 this.Writer.WriteLine("</li>");
-                isUlOpen = false;
+                isTestCaseUlOpen = false;
+            }
+
+            if (isFixtureUlOpen)
+            {
+                this.Writer.WriteLine("</ul>");
+                this.Writer.WriteLine("</li>");
+                isFixtureUlOpen = false;
             }
             if (tempStr.Length > 0)
             {
-                StringBuilder str = new StringBuilder();
                 string temp = "EndTestFixture." + tempStr[0];
-                this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" class=\"fixture\">{1}</label>", 
-                    temp, "<b>End test Fixture:</b>&nbsp;" + tempStr[0]));
+                this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" class=\"fixture\">{1}</label>",
+                    temp, "<b>End test Project:</b>&nbsp;" + tempStr[0]));
                 this.Writer.WriteLine("<ul>");
-                isUlOpen = true;
-                this.Writer.WriteLine(str);
+                isFixtureUlOpen = true;
             }
+        }
+
+        protected override void PrintFixtureSetUp()
+        {
+            TestContext context = TestContext.CurrentContext;
+            //IDictionary temp = context.Test.Properties;
+            string fixtureName = context.Test.FullName;
+            if (isRequestUlOpen)
+            {
+                this.Writer.WriteLine("</ul>");
+                this.Writer.WriteLine("</li>");
+                isRequestUlOpen = false;
+            }
+            if (isTestCaseUlOpen)
+            {
+                this.Writer.WriteLine("</ul>");
+                this.Writer.WriteLine("</li>");
+                isTestCaseUlOpen = false;
+            }
+            if (isFixtureUlOpen)
+            {
+                this.Writer.WriteLine("</ul>");
+                this.Writer.WriteLine("</li>");
+                isFixtureUlOpen = false;
+            }
+
+            string temp = "TestFixture." + fixtureName;
+            this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" checked=\"checked\" /><label for=\"{0}\" class=\"fixture\">{1}</label>",
+                temp, "<b>Test Fixture:</b>&nbsp;" + temp));
+            this.Writer.WriteLine("<ul>");
+            isFixtureUlOpen = true;
+        }
+
+        protected override void PrintFixtureTearDown()
+        {
+            //base.PrintFixtureTearDown();
+            //PrintSumary();
         }
 
         protected override void PrintTestSumary(int total, int failed, int inconclusive, int skipped, int passed)
@@ -222,18 +262,27 @@ namespace TestLibrary
         protected override void PrintFailedTestList(List<Dictionary<string, string>> testList)
         {
             // Close previous tag in the body
-            if (isUlOpen)
-            {
-                this.Writer.WriteLine("</ul>");
-                this.Writer.WriteLine("</li>");
-                isUlOpen = false;
-            }
             if (isRequestUlOpen)
             {
                 this.Writer.WriteLine("</ul>");
                 this.Writer.WriteLine("</li>");
                 isRequestUlOpen = false;
             }
+
+            if (isTestCaseUlOpen)
+            {
+                this.Writer.WriteLine("</ul>");
+                this.Writer.WriteLine("</li>");
+                isTestCaseUlOpen = false;
+            }
+
+            if (isFixtureUlOpen)
+            {
+                this.Writer.WriteLine("</ul>");
+                this.Writer.WriteLine("</li>");
+                isFixtureUlOpen = false;
+            }
+
             this.Writer.WriteLine("</ul>");
             this.Writer.WriteLine("</div>");
             this.Writer.WriteLine("<div class='testFailed'>");
@@ -241,7 +290,7 @@ namespace TestLibrary
             this.Writer.WriteLine("<ul>");
             foreach (Dictionary<string, string> item in testList)
             {
-                this.Writer.WriteLine(string.Format("<li><a href=\"#{0}\">{1}</a></li>", "Testcase" + item["Number"], 
+                this.Writer.WriteLine(string.Format("<li><a href=\"#\" onclick=\"GoToTestCase('{0}'); return false;\">{1}</a></li>", "Testcase" + item["Number"],
                     item[BaseListener.FullNameKey]));
             }
             this.Writer.WriteLine("</ul>");
@@ -258,13 +307,13 @@ namespace TestLibrary
                 this.Writer.Write("</ul></li>");
                 isRequestUlOpen = false;
             }
-            this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" class=\"request\"><b>[{1}]</b><a>&nbsp;{2}</a></label>", 
+            this.Writer.WriteLine(string.Format("<li><input type=\"checkbox\" id=\"{0}\" /><label for=\"{0}\" class=\"request\"><b>[{1}]</b><a>&nbsp;{2}</a></label>",
                 temp, requestInfo["Method"], requestInfo["Url"]));
             this.Writer.WriteLine("<ul>");
             //this.Writer.Write(string.Format("<li><b>Url: </b>{1}</li>", "Url" + temp, requestInfo["Url"]));
             //this.Writer.Write(string.Format("<li><b>Method:</b> {1}</li>", "Method"+temp, requestInfo["Method"]));
             this.Writer.WriteLine("<li><b>Header:</b></li>");
-            if(!string.IsNullOrEmpty(requestInfo["Headers"]))
+            if (!string.IsNullOrEmpty(requestInfo["Headers"]))
             {
                 this.Writer.WriteLine(string.Format("<li><textarea readOnly='true'>{0}</textarea></li>", requestInfo["Headers"]));
             }
@@ -275,11 +324,11 @@ namespace TestLibrary
         {
             StringBuilder str = new StringBuilder();
             this.Writer.WriteLine("<li><b>Request data:</b></li>");
-            if(!string.IsNullOrEmpty(data))
+            if (!string.IsNullOrEmpty(data))
             {
                 this.Writer.WriteLine(string.Format("<li><textarea readOnly ='true'>{0}</textarea></li>", data));
             }
-            
+
             this.Writer.WriteLine(str.ToString());
         }
 
@@ -291,7 +340,7 @@ namespace TestLibrary
             this.Writer.WriteLine("<ul>");
             this.Writer.WriteLine(string.Format("<li><b>Http code:</b> {0}</li>", responseInfo["HttpCode"]));
             this.Writer.WriteLine(string.Format("<li><b>Data:</b></li>"));
-            if(!string.IsNullOrEmpty(responseInfo["Data"]))
+            if (!string.IsNullOrEmpty(responseInfo["Data"]))
             {
                 this.Writer.WriteLine(string.Format("<li><textarea readOnly ='true'>{0}</textarea></li>", responseInfo["Data"]));
             }
@@ -308,7 +357,7 @@ namespace TestLibrary
             }
         }
 
-       
+
         #region protected helper methods to write Html content
         /// <summary>
         /// Replace new line with html <!--<br/>--> 
@@ -412,18 +461,18 @@ namespace TestLibrary
         protected void AddButton(string id, string title, string value, string onclick)
         {
             this.Writer.WriteLine(
-                string.Format("<input type=\"button\" id=\"{0}\" title=\"{1}\" value=\"{2}\" onclick=\"{3}\" />", 
-                id, title,value, onclick));
+                string.Format("<input type=\"button\" id=\"{0}\" title=\"{1}\" value=\"{2}\" onclick=\"{3}\" />",
+                id, title, value, onclick));
             //this.Writer.WriteLine();
         }
-                
+
         #endregion
 
         #region protected members
         protected string htmlNewLine = string.Format("<br />{0}", Environment.NewLine);
-        protected bool isUlOpen = false;
+        protected bool isFixtureUlOpen = false;
         protected bool isRequestUlOpen = false;
-        
+        protected bool isTestCaseUlOpen = false;
         //protected Dictionary<string, List<PerformanceData>> summaryDictionary;
         //protected int summaryCount
         //{

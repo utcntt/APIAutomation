@@ -8,24 +8,9 @@ using System.Linq;
 namespace TestLibrary
 {
     /// <summary>
-    /// Test Logger
-    /// Authored by Dimas Buditanoyo
     /// This class uses 2 methods:
     ///    1. (default) Simple logging to local file 
     ///    2. Using Log4Net library to log with configuration (currently disabled)
-    /// 
-    /// <example>
-    /// Common Methods:
-    /// Log.Info()      : Information. Written to Console.
-    /// Log.Debug()     : Information, but can be ignored. Only useful for debugging.
-    /// Log.Warn()      : Error, but can be ignored. Written to Console.
-    /// Log.Error()     : Error, but need attention. Written to Console.
-    /// Log.ReproStep() : Useful to record Repro Step of test case.
-    ///     The recorded repro steps can be accessed from Log.ReproSteps
-    /// using(Log.ReproStepWrapper()) : useful to understand what scope of Repro step it is in
-    /// using(Log.EnterExitWrapper()) : useful to understand what method it is currently in
-    /// using(Log.TimeSpanWrapper()) : useful to understand the time spent to do the statements in the block
-    /// </example>
     /// </summary>
     public partial class Log
     {
@@ -113,9 +98,9 @@ namespace TestLibrary
                 CreateHtmlResourceFiles(HtmlLogFilePath);
                 try
                 {
-                    _text = new StreamWriter(System.IO.File.Open(LogFilePath, FileMode.Create)); //  Create or Overwrite Existing
-                    _htmlStream = File.Open(HtmlLogFilePath, FileMode.Create); //  Create or Overwrite Existing
-                    StreamWriter htmlWriter = new StreamWriter(_htmlStream);
+                    _textWriter = new StreamWriter(System.IO.File.Open(LogFilePath, FileMode.Create)); //  Create or Overwrite Existing
+                    Stream _htmlStream = File.Open(HtmlLogFilePath, FileMode.Create); //  Create or Overwrite Existing
+                    _htmlWriter = new StreamWriter(_htmlStream);
                     if (Trace.Listeners.Count > 0)
                     {
                         Trace.Listeners.Clear();
@@ -125,8 +110,8 @@ namespace TestLibrary
 
                     // Trace.Listeners.Add(new ConsoleTraceListener()); // Native Console Listener (NUnit)
                     Trace.Listeners.Add(new ConsoleListener("API Automation Console Log", null)); // For NUnit
-                    Trace.Listeners.Add(new TextLogListener(_text, "API Automation Text Log", null)); // for txt log file
-                    Trace.Listeners.Add(new HtmlListener(htmlWriter, "API Automation Html Log", null)); // For Html log
+                    Trace.Listeners.Add(new TextLogListener(_textWriter, "API Automation Text Log", null)); // for txt log file
+                    Trace.Listeners.Add(new HtmlListener(_htmlWriter, "API Automation Html Log", null)); // For Html log
                     Trace.Listeners.Add(new NUnitListener("API Automation Html Log", null)); // For Html log
                                                                                                         //Trace.Listeners.Add(new HtmlPerfListener(_performanceStream, "UI Automation perspective Performance Log", null)); // For Performance
 
@@ -176,8 +161,10 @@ namespace TestLibrary
         #endregion
 
         #region private members
-        private static StreamWriter _text; //  Create or Overwrite Existing
-        private static Stream _htmlStream; //  Create or Overwrite Existing
+        private static StreamWriter _textWriter; //  Create or Overwrite Existing
+        private static StreamWriter _htmlWriter; //  Create or Overwrite Existing
+        private static HtmlListener htmlListener;
+        private static TextLogListener textListener;
         private static bool initialized = false;
 
         //private static Stream _performanceStream = File.Open(PerformanceFilePath, FileMode.Create); //  Create or Overwrite Existing
@@ -385,13 +372,23 @@ namespace TestLibrary
             Trace.WriteLine("Teardown", "testcase");
         }
 
-        public static void PrintTestFixtureSetup()
+        public static void PrintTestInit()
         {
             InitializeLogging();
+            Trace.WriteLine("Setup", "test");
+        }
+
+        public static void PrintTestEnd()
+        {
+            Trace.WriteLine("Teardown", "test");
+        }
+
+        public static void PrintTestFixtureSetup()
+        {
             Trace.WriteLine("Setup", "fixture");
         }
 
-        public static void PrintTestFixtureTeardown()
+        public static void PrintTestFixtureTearDown()
         {
             Trace.WriteLine("Teardown", "fixture");
         }
