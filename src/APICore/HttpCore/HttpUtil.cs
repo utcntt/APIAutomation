@@ -9,9 +9,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace APICore
+namespace APICore.HttpCore
 {
-    public class Util
+    public class HttpUtil
     {
         /// <summary>
         /// This method is used to add header information to a request. 
@@ -69,12 +69,12 @@ namespace APICore
                     IEnumerable parameter = item.Value as IEnumerable;
                     foreach (object para in parameter)
                     {
-                        Util.AddQueryParam(formattedUrl, item.Key, para == null ? "" : para.ToString());
+                        HttpUtil.AddQueryParam(formattedUrl, item.Key, para == null ? "" : para.ToString());
                     }
                 }
                 else
                 {
-                    Util.AddQueryParam(formattedUrl, item.Key, item.Value == null ? "" : item.Value.ToString());
+                    HttpUtil.AddQueryParam(formattedUrl, item.Key, item.Value == null ? "" : item.Value.ToString());
                 }
             }
             // Removing last "&"
@@ -139,7 +139,7 @@ namespace APICore
         {
             foreach (KeyValuePair<string, string> item in paramList)
             {
-                Util.AddQueryParam(source, item.Key, item.Value, isAutoAddDelim);
+                HttpUtil.AddQueryParam(source, item.Key, item.Value, isAutoAddDelim);
             }
             return source;
         }

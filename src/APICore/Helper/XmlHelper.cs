@@ -1,4 +1,4 @@
-﻿using APICore.Model;
+﻿using APICore.ModelBase;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -41,7 +41,7 @@ namespace APICore.Helpers
         /// <typeparam name="T"></typeparam>
         /// <param name="resourceList"></param>
         /// <returns></returns>
-        public static string GenerateXMLString<T>(List<T> resourceList) where T : ResourceBase
+        public static string GenerateXMLString<T>(List<T> resourceList) where T : ModelBase.Model
         {
             XDocument doc = new XDocument();
             XElement root = new XElement(typeof(T).Name);
@@ -132,12 +132,12 @@ namespace APICore.Helpers
         }
 
         /// <summary>
-        /// Parses XML into a list of ResourceBase
+        /// Parses XML into a list of ModelBase
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="xmlDom"></param>
         /// <returns></returns>
-        //internal static ReadResponseData<T> GetResourcesFromXML<T>(XDocument xmlDom) where T : XmlResource, new()
+        //internal static ReadResponseData<T> GetResourcesFromXML<T>(XDocument xmlDom) where T : XmlModel, new()
         //{
         //    ReadResponseData<T> result = null;
 
@@ -204,7 +204,7 @@ namespace APICore.Helpers
         /// <typeparam name="T"></typeparam>
         /// <param name="xml"></param>
         /// <returns></returns>
-        //internal static Dictionary<string, object> XMLtoDictionary<T>(string xml) where T : XmlResource
+        //internal static Dictionary<string, object> XMLtoDictionary<T>(string xml) where T : XmlModel
         //{
         //    Dictionary<string, object> xmlDictionary = null;
 
@@ -228,7 +228,7 @@ namespace APICore.Helpers
         /// <typeparam name="TResource">Resource type: Job, Field, User...</typeparam>
         /// <param name="filePath">Full path of the XML file</param>
         /// <returns>An instance of WriteDataBase.</returns>
-        //public static WriteRequestData<TResource> ParseXMLFile<TResource>(string filePath) where TResource : XmlResource, new()
+        //public static WriteRequestData<TResource> ParseXMLFile<TResource>(string filePath) where TResource : XmlModel, new()
         //{
         //    WriteRequestData<TResource> result = new WriteRequestData<TResource>();
         //    XDocument doc = XDocument.Load(filePath);
@@ -295,14 +295,14 @@ namespace APICore.Helpers
         //            }
         //            else //Custom field
         //            {
-        //                Log.Info("Cannot find property '{0}' in the class {1}. A XmlResource instance will be created!", 
+        //                Log.Info("Cannot find property '{0}' in the class {1}. A XmlModel instance will be created!", 
         //                    propertyName, typeof(TResource).FullName);
 
-        //                XmlResource resource = new XmlResource();
+        //                XmlModel resource = new XmlModel();
 
         //                foreach (XElement childElement in parent.Elements())
         //                {
-        //                    ParseResource<XmlResource>(childElement, resource.DictionaryValues);
+        //                    ParseResource<XmlModel>(childElement, resource.DictionaryValues);
         //                }
         //                parentDic[parent.Name.LocalName] = resource;
         //            }
@@ -317,7 +317,7 @@ namespace APICore.Helpers
         //        Type propType = propertyInfo.PropertyType;
         //        XElement resourceNode = (XElement)parent.FirstNode;
         //        string[] strTemp = resourceNode.Name.LocalName.Split('.');
-        //        Type resourceType = Util.GetType("APICore.Resources.PublicAPI." + strTemp[0]);
+        //        Type resourceType = HttpUtil.GetType("APICore.Resources.PublicAPI." + strTemp[0]);
         //        //In case of Element "Item", TResource will be used
         //        if (resourceType == null)
         //            resourceType = typeof(TResource);
@@ -328,7 +328,7 @@ namespace APICore.Helpers
         //            foreach (XElement childElement in parent.Elements())
         //            {
         //                //Type type = Type.GetType("APICore.Resources.PublicAPI." + resourceNode.Name);
-        //                XmlResource temp = (XmlResource)Activator.CreateInstance(resourceType);
+        //                XmlModel temp = (XmlModel)Activator.CreateInstance(resourceType);
         //                //temp.DictionaryValues = new Dictionary<string, object>();
         //                if (strTemp.Length > 1)
         //                {
@@ -345,7 +345,7 @@ namespace APICore.Helpers
         //        }
         //        else
         //        {
-        //            XmlResource resource = (XmlResource)Activator.CreateInstance(resourceType);
+        //            XmlModel resource = (XmlModel)Activator.CreateInstance(resourceType);
         //            //In case of Option.P_JobMatching, we have to keep the actual XML tag.
         //            if (strTemp.Length > 1)
         //            {
@@ -378,9 +378,9 @@ namespace APICore.Helpers
                 {
                     AddResourceToXML(element, (Dictionary<string, object>)item.Value);
                 }
-                else if (item.Value is XmlResource)
+                else if (item.Value is XmlModel)
                 {
-                    XmlResource subResource = (XmlResource)item.Value;
+                    XmlModel subResource = (XmlModel)item.Value;
 
                     // When ActualXMLTag is set, XML node is added using ActualXMLTag's value as the XML Node's name
                     // ActualXMLTag is used for <Option> purpuse only, DictionaryValues is not processed (options do not have internal nodes)
@@ -391,7 +391,7 @@ namespace APICore.Helpers
                     }
                     else
                     {
-                        Dictionary<string, object> dicTemp = ((XmlResource)item.Value).DictionaryValues;
+                        Dictionary<string, object> dicTemp = ((XmlModel)item.Value).DictionaryValues;
                         AddResourceToXML(element, dicTemp);
                     }
                 }
@@ -405,9 +405,9 @@ namespace APICore.Helpers
                         foreach (object subItem in arrTemp)
                         {
                             // ListArray of <Options>
-                            if (subItem is XmlResource)
+                            if (subItem is XmlModel)
                             {
-                                XmlResource subResource = subItem as XmlResource;
+                                XmlModel subResource = subItem as XmlModel;
 
                                 // When ActualXMLTag is set, XML node is added using ActualXMLTag's value as the XML Node's name
                                 // ActualXMLTag is used for <Option> purpuse only, DictionaryValues is not processed (options do not have internal nodes)
@@ -424,14 +424,14 @@ namespace APICore.Helpers
                                 }
                             }
                             // ArrayList of Resources
-                            else if (subItem is ResourceBase)
+                            else if (subItem is ModelBase.Model)
                             {
-                                Dictionary<string, object> subDic = ((ResourceBase)subItem).DictionaryValues;
+                                Dictionary<string, object> subDic = ((ModelBase.Model)subItem).DictionaryValues;
                                 AddResourceToXML(element, subDic);
                             }
                             else
                             {
-                                // When subItem do not extend ResourceBase, the XML Node is created using item.key as Node's name
+                                // When subItem do not extend ModelBase, the XML Node is created using item.key as Node's name
                                 // It allows adding XML Node with the same NAME to the XML Parent Node
 
                                 // <xxx.FieldName>
@@ -446,7 +446,7 @@ namespace APICore.Helpers
                             }
                         }
 
-                        // When items at ArrayList do not extends from ResourceBase, XML node "element"
+                        // When items at ArrayList do not extends from ModelBase, XML node "element"
                         // Should not be added to XML Parent Node
                         if (notResourceBaseList)
                         {

@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace APICore.Model
+namespace APICore.ModelBase
 {
     /// <summary>
     /// Base class for all Resource created by XML
     /// </summary>
-    public class XmlResource: ResourceBase
+    public class XmlModel: Model
     {
         /// <summary>
         /// XML Tag name used in case of serializing XML.

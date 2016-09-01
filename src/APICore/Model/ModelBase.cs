@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 //using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 
-namespace APICore.Model
+namespace APICore.ModelBase
 {
     /// <summary>
     /// 
     /// </summary>
-    public class ResourceBase
+    public class Model
     {
         private Dictionary<string, object> dictionaryValues = new Dictionary<string,object>();
 

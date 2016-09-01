@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace APICore
+namespace APICore.HttpCore
 {
     //An implememtation of a specific API
     public class APIMethod

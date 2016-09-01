@@ -7,7 +7,7 @@ using NUnit.Framework;
 using TestLibrary;
 //using APICore.APIConnection.Maps;
 //using APICore.APIConnection.Private;
-using APICore.Model;
+using APICore.ModelBase;
 //using APICore.Api.PrivateAPI;
 using APICore.Helpers;
 using System.Net;
@@ -24,6 +24,23 @@ namespace APICore
     /// </summary>
     public class TestBase
     {
+        /// <summary>
+        /// This method will be called once BEFORE any test cases is executed.
+        /// </summary>
+        [OneTimeSetUp]
+        public virtual void OneTimeSetUp()
+        {
+            Log.PrintTestFixtureSetup();
+        }
+
+        /// <summary>
+        /// This method will be called once AFTER any test cases is executed.
+        /// </summary>
+        [OneTimeTearDown]
+        public virtual void OneTimeTearDown()
+        {
+            Log.PrintTestFixtureTearDown();
+        }
         /// <summary>
         /// This method will be called once BEFORE each test method.
         /// In case you override this method. Remember to call base.SetUp() in your method.
@@ -42,62 +59,6 @@ namespace APICore
         public virtual void TearDown()
         {
             Log.PrintTestCaseTeardown();
-            //Log.Info("Tear down!");
-            //mapsConnection = null;
-            //privateConnection = null;
-            //publicConnection = null;
         }
-
-        
-
-        ///// <summary>
-        ///// PublicAPIConnection
-        ///// </summary>
-        //public static PublicAPIConnection PublicConnection
-        //{
-        //    get
-        //    {
-        //        if (publicConnection == null)
-        //            publicConnection = PublicAPIConnection.Instance;
-        //        return publicConnection;
-        //    }
-        //}
-
-        ///// <summary>
-        ///// PrivateAPIConnection
-        ///// </summary>
-        //public static PrivateAPIConnection PrivateConnection
-        //{
-        //    get
-        //    {
-        //        if (privateConnection == null)
-        //            privateConnection = PrivateAPIConnection.Instance;
-        //        return privateConnection;
-        //    }
-        //}
-
-        ///// <summary>
-        ///// PrivateAPIAuthetication
-        ///// </summary>
-        //public static PrivateAPIAuthentication PrivateAuthentication
-        //{
-        //    get
-        //    {
-        //        return PrivateConnection.Authentication;
-        //    }
-        //}
-
-        ///// <summary>
-        ///// PublicAPIAuthetication
-        ///// </summary>
-        //public static PublicAPIAuthentication PublicAuthentication
-        //{
-        //    get
-        //    {
-        //        return PublicConnection.Authentication;
-        //    }
-        //}
-
-        
     }
 }

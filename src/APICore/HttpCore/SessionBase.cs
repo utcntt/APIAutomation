@@ -7,7 +7,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace APICore
+namespace APICore.HttpCore
 {
     /// <summary>
     /// SessionBase contains all implementations to setup a new connection with a Server
@@ -28,12 +28,12 @@ namespace APICore
 
             if (method.UrlParameter != null && method.UrlParameter.Count > 0)
             {
-                url += Util.FormatURLParameters(method.UrlParameter);
+                url += HttpUtil.FormatURLParameters(method.UrlParameter);
             }
             HttpRequestMessage request = new HttpRequestMessage(method.HttpMethod, url);
             if (method.Headers != null && method.Headers.Count > 0)
             {
-                Util.AddRequestHeaders(request.Headers, method.Headers);
+                HttpUtil.AddRequestHeaders(request.Headers, method.Headers);
             }
 
             if (!string.IsNullOrEmpty(method.RequestData))
@@ -75,7 +75,7 @@ namespace APICore
 
         /// <summary>
         /// A default headers set that will be used for every requests 
-        /// Use Util.AddRequestHeaders() to add any header item to it.
+        /// Use HttpUtil.AddRequestHeaders() to add any header item to it.
         /// </summary>
         public HttpRequestHeaders MasterHeader
         {
@@ -149,6 +149,13 @@ namespace APICore
         {
             HttpRequestMessage request = GetRequestMessage(method);
             return HttpClient.SendAsync(request);
+        }
+
+        public async Task<ResponseWrapper> CallWrapperAsync(APIMethod method)
+        {
+            HttpRequestMessage request = GetRequestMessage(method);
+            HttpResponseMessage response = await HttpClient.SendAsync(request);
+            return new ResponseWrapper(response);
         }
         #endregion
 
