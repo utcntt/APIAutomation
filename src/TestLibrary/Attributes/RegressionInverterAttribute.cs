@@ -9,24 +9,24 @@ namespace TestLibrary.Attributes
 {
     public class RegressionInverterAttribute : TestActionAttribute
     {
-        private class HrbcVersion : IComparable<HrbcVersion>
+        private class ProductVersion : IComparable<ProductVersion>
         {
-            public static HrbcVersion Trunk { get; } = new HrbcVersion("trunk", new int[] { });
+            public static ProductVersion Trunk { get; } = new ProductVersion("trunk", new int[] { });
 
-            public static HrbcVersion Parse(string version)
+            public static ProductVersion Parse(string version)
             {
                 if (version.ToLower() == "trunk")
                 {
                     return Trunk;
                 }
 
-                return new HrbcVersion(version);
+                return new ProductVersion(version);
             }
 
             private string version;
             private int[] parsed;
 
-            private HrbcVersion(string version, int[] parsed = null)
+            private ProductVersion(string version, int[] parsed = null)
             {
                 this.version = version;
                 this.parsed = parsed == null ? Parse() : parsed;
@@ -63,7 +63,7 @@ namespace TestLibrary.Attributes
                 return (from part in parsed select part.ToString()).Aggregate((s1, s2) => s1 + "." + s2);
             }
 
-            public int CompareTo(HrbcVersion other)
+            public int CompareTo(ProductVersion other)
             {
                 int l1 = parsed.Length;
                 int l2 = other.parsed.Length;
@@ -116,12 +116,12 @@ namespace TestLibrary.Attributes
         private bool IsVersionMatch(ITest test)
         {
             // get current version
-            var versionStr = TestContext.Parameters.Get("HrbcVersion", string.Empty);
+            var versionStr = TestContext.Parameters.Get("ProductVersion", string.Empty);
             if (versionStr == string.Empty)
             {
                 return true;
             }
-            var version = HrbcVersion.Parse(versionStr);
+            var version = ProductVersion.Parse(versionStr);
 
             var bugs = new List<string>();
 
@@ -143,8 +143,8 @@ namespace TestLibrary.Attributes
                 var from = bugSpec.Length > 1 ? bugSpec[1] : string.Empty;
                 var until = bugSpec.Length > 2 ? bugSpec[2] : string.Empty;
 
-                bool isFrom = from == string.Empty || HrbcVersion.Parse(from).CompareTo(version) <= 0;
-                bool isUntil = until == string.Empty || HrbcVersion.Parse(until).CompareTo(version) > 0;
+                bool isFrom = from == string.Empty || ProductVersion.Parse(from).CompareTo(version) <= 0;
+                bool isUntil = until == string.Empty || ProductVersion.Parse(until).CompareTo(version) > 0;
 
                 if (isFrom && isUntil)
                 {
