@@ -5,15 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using TestLibrary;
-//using APICore.APIConnection.Maps;
-//using APICore.APIConnection.Private;
-using APICore.ModelBase;
-//using APICore.Api.PrivateAPI;
 using APICore.Helpers;
 using System.Net;
-//using APICore.Api.PrivateAPI.Rosetta;
-//using APICore.Resources.PrivateAPI.Field;
-//using APICore.Api.PrivateAPI.Bulk;
 using System.Threading;
 
 namespace APICore

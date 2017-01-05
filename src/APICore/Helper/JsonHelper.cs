@@ -10,7 +10,6 @@ using Newtonsoft.Json.Serialization;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using APICore.ModelBase;
 
 namespace APICore.Helper
 {
@@ -48,21 +47,21 @@ namespace APICore.Helper
             Type type = typeof(T);
             T result = JsonConvert.DeserializeObject<T>(input);
             #region TO-DO: Port to .Net Core code
-            if (typeof(ModelBase.Model).IsAssignableFrom(type))
+            if (typeof(Model.Model).IsAssignableFrom(type))
             {
                 Dictionary<string, object> temp = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
-                ModifyDictionary(result as ModelBase.Model, temp);
+                ModifyDictionary(result as Model.Model, temp);
             }
             else if (type.IsGenericParameter && type.FullName.Contains("List"))
             {
                 Type[] elementType = type.GetGenericArguments();
-                if (typeof(ModelBase.Model).IsAssignableFrom(elementType[0]))
+                if (typeof(Model.Model).IsAssignableFrom(elementType[0]))
                 {
                     List<Dictionary<string, object>> temp = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(input);
 
                     for (int i = 0; i < temp.Count; i++)
                     {
-                        ModelBase.Model element = GetListItemNew(elementType[0], i, result);
+                        Model.Model element = GetListItemNew(elementType[0], i, result);
                         ModifyDictionary(element, temp[i]);
                     }
                 }
@@ -70,20 +69,20 @@ namespace APICore.Helper
             else if (type.IsGenericParameter && type.FullName.Contains("Dictionary"))
             {
                 Type[] elementType = type.GetGenericArguments();
-                if (typeof(ModelBase.Model).IsAssignableFrom(elementType[1]))
+                if (typeof(Model.Model).IsAssignableFrom(elementType[1]))
                 {
                     Dictionary<string, Dictionary<string, object>> temp =
                         JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(input);
                     foreach (var item in temp)
                     {
-                        ModelBase.Model element = GetDictionaryItemNew(elementType[1], item.Key, result);
+                        Model.Model element = GetDictionaryItemNew(elementType[1], item.Key, result);
                         ModifyDictionary(element, temp[item.Key]);
                     }
                 }
                 else if (elementType[1].IsGenericParameter && elementType[1].FullName.Contains("List"))
                 {
                     Type[] subElementType = elementType[1].GetGenericArguments();
-                    if (typeof(ModelBase.Model).IsAssignableFrom(subElementType[0]))
+                    if (typeof(Model.Model).IsAssignableFrom(subElementType[0]))
                     {
                         Dictionary<string, List<Dictionary<string, object>>> temp =
                             JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, object>>>>(input);
@@ -91,7 +90,7 @@ namespace APICore.Helper
                         {
                             for (int i = 0; i < item.Value.Count; i++)
                             {
-                                ModelBase.Model subElement = GetDictionaryListItemNew(subElementType[0], item.Key, i, result);
+                                Model.Model subElement = GetDictionaryListItemNew(subElementType[0], item.Key, i, result);
                                 ModifyDictionary(subElement, temp[item.Key][i]);
                             }
                         }
@@ -144,9 +143,9 @@ namespace APICore.Helper
 
             TypeInfo type = oldValue.GetType().GetTypeInfo();
 
-            if (oldValue is ModelBase.Model)
+            if (oldValue is Model.Model)
             {
-                Dictionary<string, object> subOldDic = ((ModelBase.Model)oldValue).DictionaryValues;
+                Dictionary<string, object> subOldDic = ((Model.Model)oldValue).DictionaryValues;
                 Dictionary<string, object> subNewDic = new Dictionary<string, object>(subOldDic);
 
                 foreach (KeyValuePair<string, object> item in subOldDic)
@@ -227,7 +226,7 @@ namespace APICore.Helper
             return newList;
         }
 
-        private static void ModifyDictionary(ModelBase.Model resource, Dictionary<string, object> originalDic)
+        private static void ModifyDictionary(Model.Model resource, Dictionary<string, object> originalDic)
         {
             TypeInfo resourceType = resource.GetType().GetTypeInfo();
             Dictionary<string, object> resultDic = new Dictionary<string, object>(resource.DictionaryValues);
@@ -267,13 +266,13 @@ namespace APICore.Helper
                         if (propType.IsGenericParameter && propType.FullName.Contains("Dictionary"))
                         {
                             Type[] subPropType = propType.GetGenericArguments();
-                            if (typeof(ModelBase.Model).IsAssignableFrom(subPropType[1]))
+                            if (typeof(Model.Model).IsAssignableFrom(subPropType[1]))
                             {
                                 Dictionary<string, object> temp = originalDic[item.Key] as Dictionary<string, object>;
                                 foreach (var subItem in temp)
                                 {
                                     Dictionary<string, object> subTemp = CreateDictionary(subItem.Value as JObject);
-                                    ModelBase.Model subResource = GetDictionaryItemNew(subPropType[1], subItem.Key, resultDic[item.Key]);
+                                    Model.Model subResource = GetDictionaryItemNew(subPropType[1], subItem.Key, resultDic[item.Key]);
 
                                     if (subResource != null)
                                     {
@@ -282,12 +281,12 @@ namespace APICore.Helper
                                 }
                             }
                         }
-                        else if (typeof(ModelBase.Model).IsAssignableFrom(propType))
+                        else if (typeof(Model.Model).IsAssignableFrom(propType))
                         {
                             JObject temp = item.Value as JObject;
                             Dictionary<string, object> tempDic = CreateDictionary(temp);
 
-                            ModelBase.Model propValue = resultDic[item.Key] as ModelBase.Model;
+                            Model.Model propValue = resultDic[item.Key] as Model.Model;
                             if (propValue != null)
                                 ModifyDictionary(propValue, tempDic);
                             resultDic[item.Key] = propValue;
@@ -297,7 +296,7 @@ namespace APICore.Helper
                             Type[] subPropType = propType.GetGenericArguments();
                             object propValue = resultDic[item.Key];
 
-                            if (typeof(ModelBase.Model).IsAssignableFrom(subPropType[0]))
+                            if (typeof(Model.Model).IsAssignableFrom(subPropType[0]))
                             {
                                 //Old code:
                                 //ArrayList arrayList = item.Value as ArrayList;
@@ -306,7 +305,7 @@ namespace APICore.Helper
                                 for (int i = 0; i < arrayList.Count; i++)
                                 {
                                     Dictionary<string, object> temp = CreateDictionary(arrayList[i] as JObject);
-                                    ModelBase.Model propItem = GetListItemNew(subPropType[0], i, propValue);
+                                    Model.Model propItem = GetListItemNew(subPropType[0], i, propValue);
 
                                     if (propItem != null)
                                         ModifyDictionary(propItem, temp);
@@ -329,7 +328,7 @@ namespace APICore.Helper
         /// <param name="index">index of the element to retrieve from the list</param>
         /// <param name="resultList">the list with the elements</param>
         /// <returns>An object type(T)</returns>
-        private static T GetListItemGeneric<T>(int index, object resultList) where T : ModelBase.Model
+        private static T GetListItemGeneric<T>(int index, object resultList) where T : Model.Model
         {
             List<T> castedList = resultList as List<T>;
             return castedList[index];
@@ -342,16 +341,16 @@ namespace APICore.Helper
         /// <param name="index">index at the list</param>
         /// <param name="resultList">list with many resources</param>
         /// <returns>Object of the ModelBase based on the specified resource type</returns>
-        private static Model GetListItemNew(Type resourceType, int index, object resultList)
+        private static Model.Model GetListItemNew(Type resourceType, int index, object resultList)
         {
             MethodInfo genericMethod = GetMethodGeneric(typeof(JsonHelper), "GetListItemGeneric", resourceType, 
                 BindingFlags.NonPublic | BindingFlags.Static);
 
-            ModelBase.Model resource = null;
+            Model.Model resource = null;
 
             if (genericMethod != null)
             {
-                resource = genericMethod.Invoke(null, new object[] { index, resultList }) as ModelBase.Model;
+                resource = genericMethod.Invoke(null, new object[] { index, resultList }) as Model.Model;
             }
             return resource;
         }
@@ -363,7 +362,7 @@ namespace APICore.Helper
         /// <param name="key">the key used to obtain element from dictionary</param>
         /// <param name="resultList">the dictionary that contains the inf</param>
         /// <returns>An object type(T)</returns>
-        private static T GetDictionaryItemGeneric<T>(string key, object resultList) where T : ModelBase.Model
+        private static T GetDictionaryItemGeneric<T>(string key, object resultList) where T : Model.Model
         {
             Dictionary<string, T> dictionary = resultList as Dictionary<string, T>;
 
@@ -381,16 +380,16 @@ namespace APICore.Helper
         /// <param name="key">the key used to obtain element from dictionary</param>
         /// <param name="resultList">the dictionary that contains the inf</param>
         /// <returns>An object of the specified type 'resourceType' (derived from ModelBase)</returns>
-        private static Model GetDictionaryItemNew(Type resourceType, string key, object resultList) 
+        private static Model.Model GetDictionaryItemNew(Type resourceType, string key, object resultList) 
         {
             MethodInfo genericMethod = GetMethodGeneric(typeof(JsonHelper), "GetDictionaryItemGeneric", resourceType,
                 BindingFlags.NonPublic | BindingFlags.Static);
 
-            ModelBase.Model resource = null;
+            Model.Model resource = null;
 
             if (genericMethod != null)
             {
-                resource = genericMethod.Invoke(null, new object[] { key, resultList }) as ModelBase.Model;
+                resource = genericMethod.Invoke(null, new object[] { key, resultList }) as Model.Model;
             }
             return resource;
         }
@@ -403,7 +402,7 @@ namespace APICore.Helper
         /// <param name="index"></param>
         /// <param name="resultList"></param>
         /// <returns></returns>
-        internal static T GetDictionaryListItemGeneric<T>(string key, int index, object resultList) where T : ModelBase.Model
+        internal static T GetDictionaryListItemGeneric<T>(string key, int index, object resultList) where T : Model.Model
         {
             Dictionary<string, List<T>> dictionary = new Dictionary<string, List<T>>();
 
@@ -427,23 +426,23 @@ namespace APICore.Helper
         /// <param name="index"></param>
         /// <param name="resultList"></param>
         /// <returns></returns>
-        internal static Model GetDictionaryListItemNew(Type resourceType, string key, int index, object resultList) 
+        internal static Model.Model GetDictionaryListItemNew(Type resourceType, string key, int index, object resultList) 
         {
             MethodInfo genericMethod = GetMethodGeneric(typeof(JsonHelper), "GetDictionaryListItemGeneric", resourceType,
                 BindingFlags.NonPublic | BindingFlags.Static);
 
-            ModelBase.Model resource = null;
+            Model.Model resource = null;
 
             if (genericMethod != null)
             {
-                resource = genericMethod.Invoke(null, new object[] { key, index, resultList }) as ModelBase.Model;
+                resource = genericMethod.Invoke(null, new object[] { key, index, resultList }) as Model.Model;
             }
             return resource;
         }
 
-        private static Model CreateInstance(Type resourceType, Dictionary<string, object> dictionaryValues)
+        private static Model.Model CreateInstance(Type resourceType, Dictionary<string, object> dictionaryValues)
         {
-            ModelBase.Model result = (ModelBase.Model)Activator.CreateInstance(resourceType);
+            Model.Model result = (Model.Model)Activator.CreateInstance(resourceType);
             Dictionary<string, object> resultDic = new Dictionary<string, object>(dictionaryValues);
 
             result.DictionaryValues = resultDic;

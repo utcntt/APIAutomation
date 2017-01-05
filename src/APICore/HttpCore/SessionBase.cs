@@ -40,6 +40,8 @@ namespace APICore.HttpCore
             {
                 byte[] bytes = Encoding.GetBytes(method.RequestData);
                 ByteArrayContent content = new ByteArrayContent(bytes);
+                if (method.Headers.ContainsKey("Content-Type"))
+                    content.Headers.ContentType = new MediaTypeHeaderValue(method.Headers["Content-Type"]);
                 request.Content = content;
             }
             return request;

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 //using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 
-namespace APICore.ModelBase
+namespace APICore.Model
 {
     /// <summary>
     /// 

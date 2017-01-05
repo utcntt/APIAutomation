@@ -1,5 +1,4 @@
-﻿using APICore.ModelBase;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +9,7 @@ using System.Threading.Tasks;
 using TestLibrary;
 using System.Globalization;
 using System.Collections;
+using APICore.Model;
 
 namespace APICore.Helper
 {
@@ -29,7 +29,7 @@ namespace APICore.Helper
         /// <para/> false: not equal.
         /// </returns>
         public static bool CompareList<TResource, TElement>(List<TResource> source, List<TResource> compareList, string compareElement) 
-            where TResource : ModelBase.Model
+            where TResource : Model.Model
         {
             if (source.Count != compareList.Count)
             {
@@ -107,7 +107,7 @@ namespace APICore.Helper
         /// <param name="resourceList">List of resources.</param>
         /// <param name="elementList">List of elements.</param>
         /// <returns>true: All items contain all element.</returns>
-        public static bool VerifyListContainElement<T>(List<T> resourceList, List<string> elementList) where T : ModelBase.Model
+        public static bool VerifyListContainElement<T>(List<T> resourceList, List<string> elementList) where T : Model.Model
         {
             for (int i = 0; i < resourceList.Count; i++)
             {
@@ -130,7 +130,7 @@ namespace APICore.Helper
         /// </summary>
         /// <param name="resourceList">List of resources.</param>
         /// <param name="elementList">List of elements.</param>
-        public static void VerifyListNotContainElement<T>(List<T> resourceList, List<string> elementList) where T : ModelBase.Model
+        public static void VerifyListNotContainElement<T>(List<T> resourceList, List<string> elementList) where T : Model.Model
         {
             for (int i = 0; i < resourceList.Count; i++)
             {
@@ -212,7 +212,7 @@ namespace APICore.Helper
         /// </param>
         /// <exception cref="FormatException">In case any value of sortOrders has wrong format.</exception>
         /// <returns>Sorted list</returns>
-        public static List<T> SortList<T>(List<T> originalList, Dictionary<string, Type> sortOrders) where T : ModelBase.Model
+        public static List<T> SortList<T>(List<T> originalList, Dictionary<string, Type> sortOrders) where T : Model.Model
         {
             IQueryable<T> result = originalList.AsQueryable();
 
@@ -262,7 +262,7 @@ namespace APICore.Helper
         }
 
         private static Expression MakeExpression<T>(Type propType, string propName, string getPropertyValueMethod,
-            bool isAsc, bool isFirst, IQueryable<T> resultQuery) where T : ModelBase.Model
+            bool isAsc, bool isFirst, IQueryable<T> resultQuery) where T : Model.Model
         {
             Expression resultEx = null;
             ParameterExpression xParameter = Expression.Parameter(typeof(T), "x");
@@ -299,7 +299,7 @@ namespace APICore.Helper
         /// <param name="resource"></param>
         /// <param name="elementName"></param>
         /// <returns></returns>
-        public static bool? GetBooleanTypeValue(ModelBase.Model resource, string elementName)
+        public static bool? GetBooleanTypeValue(Model.Model resource, string elementName)
         {
             if (!resource.DictionaryValues.ContainsKey(elementName))
                 return null;
@@ -319,7 +319,7 @@ namespace APICore.Helper
         /// <param name="resource"></param>
         /// <param name="elementName"></param>
         /// <returns></returns>
-        public static int? GetIntTypeValue(ModelBase.Model resource, string elementName)
+        public static int? GetIntTypeValue(Model.Model resource, string elementName)
         {
             if (!resource.DictionaryValues.ContainsKey(elementName))
                 return null;
@@ -339,7 +339,7 @@ namespace APICore.Helper
         /// <param name="resource"></param>
         /// <param name="elementName"></param>
         /// <returns></returns>
-        public static long? GetLongTypeValue(ModelBase.Model resource, string elementName)
+        public static long? GetLongTypeValue(Model.Model resource, string elementName)
         {
             if (!resource.DictionaryValues.ContainsKey(elementName))
                 return null;
@@ -359,7 +359,7 @@ namespace APICore.Helper
         /// <param name="resource"></param>
         /// <param name="elementName"></param>
         /// <returns></returns>
-        public static double? GetDoubleTypeValue(ModelBase.Model resource, string elementName)
+        public static double? GetDoubleTypeValue(Model.Model resource, string elementName)
         {
             if (!resource.DictionaryValues.ContainsKey(elementName))
                 return null;
@@ -379,7 +379,7 @@ namespace APICore.Helper
         /// <param name="resource"></param>
         /// <param name="elementName"></param>
         /// <returns></returns>
-        public static string GetStringTypeValue(ModelBase.Model resource, string elementName)
+        public static string GetStringTypeValue(Model.Model resource, string elementName)
         {
             if (!resource.DictionaryValues.ContainsKey(elementName))
                 return null;
@@ -392,7 +392,7 @@ namespace APICore.Helper
         /// <param name="resource"></param>
         /// <param name="elementName"></param>
         /// <returns></returns>
-        public static DateTime? GetDateTimeTypeValue(ModelBase.Model resource, string elementName)
+        public static DateTime? GetDateTimeTypeValue(Model.Model resource, string elementName)
         {
             if (!resource.DictionaryValues.ContainsKey(elementName))
                 return null;

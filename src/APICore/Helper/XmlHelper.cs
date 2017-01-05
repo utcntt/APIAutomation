@@ -1,5 +1,4 @@
-﻿using APICore.ModelBase;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 //using System.Configuration;
@@ -18,6 +17,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Xml.Serialization;
 using System.Globalization;
+using APICore.Model;
 
 namespace APICore.Helpers
 {
@@ -41,7 +41,7 @@ namespace APICore.Helpers
         /// <typeparam name="T"></typeparam>
         /// <param name="resourceList"></param>
         /// <returns></returns>
-        public static string GenerateXMLString<T>(List<T> resourceList) where T : ModelBase.Model
+        public static string GenerateXMLString<T>(List<T> resourceList) where T : Model.Model
         {
             XDocument doc = new XDocument();
             XElement root = new XElement(typeof(T).Name);
@@ -424,9 +424,9 @@ namespace APICore.Helpers
                                 }
                             }
                             // ArrayList of Resources
-                            else if (subItem is ModelBase.Model)
+                            else if (subItem is Model.Model)
                             {
-                                Dictionary<string, object> subDic = ((ModelBase.Model)subItem).DictionaryValues;
+                                Dictionary<string, object> subDic = ((Model.Model)subItem).DictionaryValues;
                                 AddResourceToXML(element, subDic);
                             }
                             else
