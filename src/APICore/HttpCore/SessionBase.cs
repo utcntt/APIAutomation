@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using TestLibrary;
 
 namespace APICore.HttpCore
 {
@@ -142,21 +143,23 @@ namespace APICore.HttpCore
         {
 
             HttpRequestMessage request = GetRequestMessage(method);
-            HttpResponseMessage response = this.SendRequestRecursive(request);
+            HttpResponseMessage response = this.SendRequestRecursive(request).Result;
             
             return response;
         }
 
-        public Task<HttpResponseMessage> CallAsync(APIMethod method)
+        public async Task<HttpResponseMessage> CallAsync(APIMethod method)
         {
             HttpRequestMessage request = GetRequestMessage(method);
-            return HttpClient.SendAsync(request);
+            Log.PrintRequest(request);
+            Log.RequestData(method.RequestData);
+            //Log.PrintRequest(request);
+            return await this.SendRequestRecursive(request);
         }
 
         public async Task<ResponseWrapper> CallWrapperAsync(APIMethod method)
         {
-            HttpRequestMessage request = GetRequestMessage(method);
-            HttpResponseMessage response = await HttpClient.SendAsync(request);
+            HttpResponseMessage response = await CallAsync(method);
             return new ResponseWrapper(response);
         }
         #endregion
@@ -168,15 +171,13 @@ namespace APICore.HttpCore
         /// </summary>
         /// <param name="request">HttpRequestMessage</param>
         /// <returns>HttpResponseMessage of the request sent to the server. Check null before verifying the response.</returns>
-        protected HttpResponseMessage SendRequestRecursive(HttpRequestMessage request)
+        protected async Task<HttpResponseMessage> SendRequestRecursive(HttpRequestMessage request)
         {
-            //HttpClient client = new HttpClient() { MaxResponseContentBufferSize = 1000000 };
-            //HttpRequestMessage request = new HttpRequestMessage(method.HttpMethod, url);
-                      
             HttpResponseMessage returnResponse = null;
             try
             {
-                returnResponse = HttpClient.SendAsync(request).Result;
+                returnResponse = await HttpClient.SendAsync(request);
+                Log.PrintResponse(returnResponse);
             }
             catch (AggregateException exception)
             {
@@ -184,25 +185,24 @@ namespace APICore.HttpCore
                 Console.WriteLine("There is an excepion during sending the request: {0}", exception.Message);
             }
             
-            //returnResponse = await client.SendAsync(request); 
-           
             if (returnResponse != null)
             {
                 
-                //this.UpdateCookieCollection(returnResponse.);
-
                 if (returnResponse.StatusCode == HttpStatusCode.Found || returnResponse.StatusCode == HttpStatusCode.Redirect ||
                     returnResponse.StatusCode == HttpStatusCode.RedirectMethod) //change method from POST => GET
                 {
                     //returnResponse.Close();
                     HttpRequestMessage newRequest = new HttpRequestMessage();
+                    
                     //Add header for the request
 
                     //Don't Add request data since this is a GET request
 
                     newRequest.RequestUri = new Uri(returnResponse.Headers.GetValues("Location").FirstOrDefault());
                     newRequest.Method = HttpMethod.Get;
-                    returnResponse = this.SendRequestRecursive(newRequest);
+                    Log.PrintRequest(newRequest);
+                    Log.RequestData(null);
+                    returnResponse = await this.SendRequestRecursive(newRequest);
                 }
                 else if (returnResponse.StatusCode == HttpStatusCode.RedirectKeepVerb ||
                             returnResponse.StatusCode == HttpStatusCode.TemporaryRedirect)
@@ -215,7 +215,9 @@ namespace APICore.HttpCore
 
                     newRequest.RequestUri = new Uri(returnResponse.Headers.GetValues("Location").FirstOrDefault());
                     newRequest.Method = request.Method;
-                    returnResponse = this.SendRequestRecursive(newRequest);
+                    Log.PrintRequest(newRequest);
+                    Log.RequestData("{The same data with the previous request}");
+                    returnResponse = await this.SendRequestRecursive(newRequest);
                 }
             }
             else

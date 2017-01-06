@@ -11,6 +11,8 @@ using System.Globalization;
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyModel;
 using NUnit.Framework.Internal;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace TestLibrary
 {
@@ -851,6 +853,29 @@ namespace TestLibrary
                         }
                     }
                 }
+                lastestResponseData = new KeyValuePair<int, string>(response.GetHashCode(), result);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Read text content from a http response
+        /// </summary>
+        /// <param name="response"></param>
+        /// <returns></returns>
+        public static async Task<string> ReadTextFromHttpResponse(HttpResponseMessage response)
+        {
+            string result = string.Empty;
+            if (lastestResponseData != null && lastestResponseData.Value.Key == response.GetHashCode())
+            {
+                return lastestResponseData.Value.Value;
+            }
+            else
+            {
+                HttpContent content = response.Content;
+                result = await content.ReadAsStringAsync();
+                
                 lastestResponseData = new KeyValuePair<int, string>(response.GetHashCode(), result);
             }
 

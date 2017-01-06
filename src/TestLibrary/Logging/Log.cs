@@ -4,47 +4,33 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Linq;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Net.Http;
 
 namespace TestLibrary
 {
     /// <summary>
-    /// This class uses 2 methods:
-    ///    1. (default) Simple logging to local file 
-    ///    2. Using Log4Net library to log with configuration (currently disabled)
+    /// Test Logger
+    /// Authored by Truong Pham
+    /// <example>
+    /// Common Methods:
+    /// Log.Info()      : Information. Written to Console.
+    /// Log.Debug()     : Information, but can be ignored. Only useful for debugging.
+    /// Log.Warn()      : Error, but can be ignored. Written to Console.
+    /// Log.Error()     : Error, but need attention. Written to Console.
+    /// </example>
     /// </summary>
     public partial class Log
     {
+        public enum ParamLogLevel { Full, Fail, None }
         #region Public Members
         public static string NOW = DateTime.Now.ToString("yyyy_MM_dd-HH_mm");
-        public static string LogFilePath = string.Format("{2}{3}Log{1}APIAuto.log", NOW, Path.DirectorySeparatorChar, Util.GetTestDirectory(), Path.DirectorySeparatorChar);
-        public static string HtmlLogFilePath = string.Format("{2}{3}Log{1}APIAutoLog.html", NOW, Path.DirectorySeparatorChar, Util.GetTestDirectory(), Path.DirectorySeparatorChar);
-        //public static string PerformanceFilePath = string.Format("Log{1}APIAuto.performance.html", NOW, Path.DirectorySeparatorChar);
-
-        /// <summary>
-        /// Log Footer. This is written at the end of the log.
-        /// </summary>
-        public static string Footer
-        {
-            set
-            {
-                foreach (TraceListener listener in Trace.Listeners)
-                {
-                    ((BaseListener)listener).Footer = value;
-                }
-            }
-            get
-            {
-                if (Trace.Listeners.Count > 0)
-                {
-                    // the first Listener's footer is the representative,
-                    // because there is no difference between other Listeners' footer
-                    BaseListener listener = (BaseListener)Trace.Listeners[0];
-                    return listener.Footer;
-                }
-                return string.Empty;
-            }
-        }
-
+        public static string LogFilePath = string.Format("{2}{3}Log{1}", NOW, Path.DirectorySeparatorChar, Util.GetTestDirectory(), Path.DirectorySeparatorChar);
+        public static string HtmlLogFilePath = string.Format("{2}{3}Log{1}", NOW, Path.DirectorySeparatorChar, Util.GetTestDirectory(), Path.DirectorySeparatorChar);
+        private static Dictionary<string, BaseListener> tempLog = new Dictionary<string, BaseListener>();
+        private static BaseListener CurrentListener = null;
+        private static ParamLogLevel logLevel = ParamLogLevel.None;
         #endregion
 
         #region Constructor
@@ -56,11 +42,6 @@ namespace TestLibrary
             // if enabled, otherwise this doees not do anything
             //InitializeLog4Net();
             //InitializeLogging();
-        }
-
-        ~Log()
-        {
-            Log.Dispose(false);
         }
 
         public void Dispose()
@@ -77,13 +58,6 @@ namespace TestLibrary
                 //listener.Close();
                 listener.Dispose();
             }
-            //if (safe)
-            //{
-            //    if (PerformanceSummary != null && PerformanceSummary.Count > 0)
-            //    {
-            //        PerformanceSummary.Clear();
-            //    }
-            //}
             initialized = false;
         }
 
@@ -92,29 +66,29 @@ namespace TestLibrary
         /// </summary>
         internal static void InitializeLogging()
         {
-            if (!initialized)
+            string logParam = TestContext.Parameters.Get("Log", string.Empty);
+            logParam = logParam == string.Empty ? TestContext.Parameters.Get("log", string.Empty) : logParam;
+            if(logParam.ToLower() == "failed")
             {
-                CreateDirectoryIfItDoesNotExist(LogFilePath); // Assuming other log files are located in the same directory
-                CreateHtmlResourceFiles(HtmlLogFilePath);
+                logLevel = ParamLogLevel.Fail;
+                isLogAllowed = true;
+            } 
+            else if(logParam.ToLower() == "full")
+            {
+                logLevel = ParamLogLevel.Full;
+                isLogAllowed = true;
+            }
+            else
+            {
+                logLevel = ParamLogLevel.None;
+                isLogAllowed = false;
+            }
+            if (!initialized && isLogAllowed)
+            {
                 try
                 {
-                    _textWriter = new StreamWriter(System.IO.File.Open(LogFilePath, FileMode.Create)); //  Create or Overwrite Existing
-                    Stream _htmlStream = File.Open(HtmlLogFilePath, FileMode.Create); //  Create or Overwrite Existing
-                    _htmlWriter = new StreamWriter(_htmlStream);
-                    if (Trace.Listeners.Count > 0)
-                    {
-                        Trace.Listeners.Clear();
-                    }
-                    Trace.AutoFlush = true;
-                    Trace.IndentSize = 3; // DefaultIndentSize; 
-
-                    // Trace.Listeners.Add(new ConsoleTraceListener()); // Native Console Listener (NUnit)
-                    Trace.Listeners.Add(new ConsoleListener("API Automation Console Log", null)); // For NUnit
-                    Trace.Listeners.Add(new TextLogListener(_textWriter, "API Automation Text Log", null)); // for txt log file
-                    Trace.Listeners.Add(new HtmlListener(_htmlWriter, "API Automation Html Log", null)); // For Html log
-                    Trace.Listeners.Add(new NUnitListener("API Automation Html Log", null)); // For Html log
-                                                                                                        //Trace.Listeners.Add(new HtmlPerfListener(_performanceStream, "UI Automation perspective Performance Log", null)); // For Performance
-
+                    CreateDirectoryIfItDoesNotExist(LogFilePath); // Assuming other log files are located in the same directory
+                    CreateHtmlResourceFiles(HtmlLogFilePath);
                     initialized = true;
                 }
                 catch (Exception e)
@@ -161,13 +135,8 @@ namespace TestLibrary
         #endregion
 
         #region private members
-        private static StreamWriter _textWriter; //  Create or Overwrite Existing
-        private static StreamWriter _htmlWriter; //  Create or Overwrite Existing
-        private static HtmlListener htmlListener;
-        private static TextLogListener textListener;
         private static bool initialized = false;
-
-        //private static Stream _performanceStream = File.Open(PerformanceFilePath, FileMode.Create); //  Create or Overwrite Existing
+        private static bool isLogAllowed = false;
         #endregion
 
         #region General Write / WriteLine
@@ -198,7 +167,7 @@ namespace TestLibrary
             //else
             //{
             // log4 uses WriteLine only
-            Trace.Write(message);
+            //Trace.Write(message);
             //}
         }
         /// <summary>
@@ -208,30 +177,31 @@ namespace TestLibrary
         /// <param name="message"></param>
         internal static void WriteLine(string category, string message)
         {
-            //if (!useLog4)
-            //{
-            Trace.WriteLine(message, category);
-            //}
-            //else // if (useLog4)
-            //{
-            //    switch (category.ToLower())
-            //    {
-            //        case "debug":
-            //            log4.Debug(message);
-            //            break;
-            //        case "error":
-            //            log4.Error(message);
-            //            break;
-            //        case "warn":
-            //            log4.Warn(message);
-            //            break;
-            //        case "info":
-            //        default:
-            //            log4.Info(message);
-            //            //Console.WriteLine(message);
-            //            break;
-            //    }
-            //}
+            try
+            {
+                TestContext context = TestContext.CurrentContext;
+                if (isLogAllowed && context != null && context.Test != null)
+                {
+                    string className = context.Test.ClassName;
+                    if (tempLog.ContainsKey(className))
+                    {
+                        BaseListener listener = tempLog[className];
+                        listener.WriteLine(message, category);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (isLogAllowed)
+                {
+                    Console.WriteLine("Exception: {0}. Stacktrace: {1}", ex.Message, ex.StackTrace);
+                }
+                if (CurrentListener != null)
+                {
+                    CurrentListener.WriteLine(category, message);
+                }
+            }
+            
         }
 
         //internal static void WriteLine(string message)
@@ -364,53 +334,207 @@ namespace TestLibrary
         /// </summary>
         public static void PrintTestCaseDescription()
         {
-            Trace.WriteLine("SetUp", "testcase");
+            TestContext context = TestContext.CurrentContext;
+            if (isLogAllowed && context != null && context.Test != null)
+            {
+                string className = context.Test.ClassName;
+                if (tempLog.ContainsKey(className))
+                {
+                    BaseListener listener = tempLog[className];
+                    listener.LogTestCaseDescription();
+                    CurrentListener = listener;
+                }
+            }
         }
 
         public static void PrintTestCaseTeardown()
         {
-            Trace.WriteLine("Teardown", "testcase");
+            TestContext context = TestContext.CurrentContext;
+            if (isLogAllowed && context != null && context.Test != null)
+            {
+                string className = context.Test.ClassName;
+                if (tempLog.ContainsKey(className))
+                {
+                    BaseListener listener = tempLog[className];
+                    listener.LogTestCaseResult();
+                    CurrentListener = listener;
+
+                }
+            }
         }
 
         public static void PrintTestInit()
         {
             InitializeLogging();
-            Trace.WriteLine("Setup", "test");
+            //Trace.WriteLine("Setup", "test");
+            TestContext context = TestContext.CurrentContext;
+            if (isLogAllowed && context != null && context.Test != null)
+            {
+                string className = context.Test.ClassName;
+                if (!tempLog.ContainsKey(className))
+                {
+                    tempLog[className] = new HtmlListener();
+                }
+                CurrentListener = tempLog[className];
+            }
         }
-
         public static void PrintTestEnd()
         {
-            Trace.WriteLine("Teardown", "test");
+            if(isLogAllowed)
+            {
+                foreach (var item in tempLog)
+                {
+                    using (Stream htmlStream = File.Open(HtmlLogFilePath + item.Key + ".html", FileMode.Create))
+                    {
+                        using (TextWriter writer = new StreamWriter(htmlStream))
+                        {
+                            item.Value.WriteToOutput(writer, logLevel);
+                        }
+                    }
+                }
+            }
+            
         }
 
         public static void PrintTestFixtureSetup()
         {
-            Trace.WriteLine("Setup", "fixture");
+            try
+            {
+                TestContext context = TestContext.CurrentContext;
+                if (isLogAllowed && tempLog.Count > 0 && context != null && context.Test != null)
+                {
+                    string className = context.Test.ClassName;
+                    if (!tempLog.ContainsKey(className))
+                    {
+                        tempLog[className] = new HtmlListener();
+                    }
+                    BaseListener listener = tempLog[className];
+                    CurrentListener = listener;
+                    listener.LogSetUpDescription();
+                }
+            } 
+            catch (Exception ex)
+            {
+                if (isLogAllowed)
+                {
+                    Console.WriteLine("Exception: {0}. Stacktrace: {1}", ex.Message, ex.StackTrace);
+                }
+            }
+            
         }
 
         public static void PrintTestFixtureTearDown()
         {
-            Trace.WriteLine("Teardown", "fixture");
+            try
+            {
+                TestContext context = TestContext.CurrentContext;
+                if (isLogAllowed && context != null && context.Test != null)
+                {
+                    string className = context.Test.ClassName;
+                    if (tempLog.ContainsKey(className))
+                    {
+                        BaseListener listener = tempLog[className];
+                        CurrentListener = listener;
+                        listener.LogTeardownDescription();
+                    }
+                }
+            } 
+            catch (Exception ex)
+            {
+                if (isLogAllowed)
+                {
+                    Console.WriteLine("Exception: {0}. Stacktrace: {1}", ex.Message, ex.StackTrace);
+                }
+            }
         }
 
-        public static void PrintTestFixtureSumary()
-        {
-            Trace.WriteLine("Sumary", "fixture");
-        }
+        //public static void PrintTestSumary()
+        //{
+        //    Trace.WriteLine("Sumary", "test");
+        //}
 
-        public static void PrintRequest(HttpWebRequest request)
+        public static void PrintRequest(HttpRequestMessage request)
         {
-            Trace.WriteLine(request, "Request");
+            try
+            {
+                TestContext context = TestContext.CurrentContext;
+                if (isLogAllowed && context != null && context.Test != null)
+                {
+                    string className = context.Test.ClassName;
+                    if (tempLog.ContainsKey(className))
+                    {
+                        BaseListener listener = tempLog[className];
+                        listener.LogRequest(request);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (isLogAllowed)
+                {
+                    Console.WriteLine("Exception: {0}. Stacktrace: {1}", ex.Message, ex.StackTrace);
+                }
+                if (CurrentListener != null)
+                {
+                    CurrentListener.LogRequest(request);
+                }
+            }
         }
 
         public static void RequestData(string data)
         {
-            Trace.WriteLine(data, "RequestData");
+            try
+            {
+                TestContext context = TestContext.CurrentContext;
+                if (isLogAllowed && context != null && context.Test != null)
+                {
+                    string className = context.Test.ClassName;
+                    if (tempLog.ContainsKey(className))
+                    {
+                        BaseListener listener = tempLog[className];
+                        listener.LogRequestData(data);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (isLogAllowed)
+                {
+                    Console.WriteLine("Exception: {0}. Stacktrace: {1}", ex.Message, ex.StackTrace);
+                }
+                if (CurrentListener != null)
+                {
+                    CurrentListener.LogRequestData(data);
+                }
+            }
         }
 
-        public static void PrintResponse(HttpWebResponse response)
+        public static void PrintResponse(HttpResponseMessage response)
         {
-            Trace.WriteLine(response, "Response");
+            try
+            {
+                TestContext context = TestContext.CurrentContext;
+                if (isLogAllowed && context != null && context.Test != null)
+                { 
+                    string className = context.Test.ClassName;
+                    if (tempLog.ContainsKey(className))
+                    {
+                        BaseListener listener = tempLog[className];
+                        listener.LogResponse(response);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if(isLogAllowed)
+                {
+                    Console.WriteLine("Exception: {0}. Stacktrace: {1}", ex.Message, ex.StackTrace);
+                }
+                if (CurrentListener != null)
+                {
+                    CurrentListener.LogResponse(response);
+                }
+            }
         }
         /// <summary>
         /// Print a line of info to standard out put

@@ -19,7 +19,7 @@ namespace TestLibrary
         /// <param name="header"></param>
         /// <param name="footer"></param>
         public ConsoleListener(string header = null, string footer = null)
-            : base(Console.Out, header, footer)
+            : base( header, footer)
         {
             //this.Writer = Console.Out;
         }
@@ -103,6 +103,16 @@ namespace TestLibrary
                     break;
             }
         }
+
+        //protected override void PrintFailedTestList(List<Dictionary<string, string>> testList)
+        //{
+        //    //base.PrintFailedTestList(testList);
+        //}
+
+        //protected override void PrintTestSumary(int total, int failed, int inconclusive, int skipped, int passed)
+        //{
+            
+        //}
         #endregion
 
         #region Close

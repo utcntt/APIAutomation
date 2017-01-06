@@ -9,6 +9,9 @@ using NUnit.Framework;
 using System.Collections;
 using System.Net;
 using NUnit.Framework.Interfaces;
+using NUnit.Framework.Internal;
+using System.Net.Http;
+using System.Net.Http.Headers;
 //using NUnit.Core;
 //using NUnit.Core.Extensibility;
 
@@ -19,209 +22,304 @@ namespace TestLibrary
     /// Base trace listener which does common formatting
     /// </summary>
     //[NUnitAddin(Description = "Event Timestamp Logger")]
-    public class BaseListener : TextWriterTraceListener, IListener/*, IAddin, EventListener*/
+    public class BaseListener 
     {
         public const string TestCaseDescriptionLine = "----------------------------------------------------------------------------------------------------------------------------------";
         public const int TitleLength = 20;
         protected const string NumberKey = "Number";
         protected const string FullNameKey = "FullName";
         protected const string DescriptionKey = "Description";
+        protected const string BugKey = "Bug";
         protected const string TestNameKey = "TestName";
         protected const string ClassNameKey = "ClassName";
         protected const string CategoryKey = "Category";
         protected const string ResultKey = "Result";
         protected const string MessageKey = "Message";
         protected const string StacktraceKey = "StacktraceKey";
+        protected const string RequestKey = "Request";
+        protected const string RequestDataKey = "RequestData";
+        protected const string ResponseKey = "Response";
+        
         #region Constructor & Destructor
         /// <summary>
         /// Base constructor which sets autoflush and header and footer of the trace file
         /// </summary>
-        /// <param name="s">Stream</param>
-        /// <param name="filter">LogFilter</param>
         /// <param name="header">Header</param>
         /// <param name="footer">Footer</param>
-        public BaseListener(TextWriter writer, string header = null, string footer = null)
-            : base(writer)
+        public BaseListener(string header = null, string footer = null)
+            //: base(writer)
         {
-            //this.Writer.AutoFlush = true;
-            //logFilter = filter;
-            if (!string.IsNullOrEmpty(header))
+            this.Header = header;
+            this.footer = footer;
+            testFixture = new TestFixture();
+        }
+        #endregion
+
+        #region Public Methods
+        public virtual void LogRequest(HttpRequestMessage request)
+        {
+            int requestId = request.GetHashCode();
+            string url = request.RequestUri.ToString();
+            string method = request.Method.Method;
+            string headerString = BuildHeadersString(request.Headers);
+
+            Request logRequest = new Request();
+            logRequest.Url = url;
+            logRequest.Method = method;
+            logRequest.Headers = headerString;
+            logRequest.Id = requestId.ToString();
+            if (testFixture.CurrentNode is Request)
             {
-                this.Writer.WriteLine(header);
-            }
-            if (!string.IsNullOrEmpty(footer))
-            {
-                this.footer = footer;
+                testFixture.CurrentNode.Parent.Children.Add(logRequest);
+                logRequest.Parent = testFixture.CurrentNode.Parent;
+                this.testFixture.CurrentNode = logRequest;
             }
             else
             {
-                this.footer = string.Empty;
-            }
-            if (printedMethods != null && printedMethods.Count > 0)
-            {
-                printedMethods.Clear();
-            }
-
-            if (requests != null && requests.Count > 0)
-            {
-                requests.Clear();
-            }
-
-            if (responses != null && responses.Count > 0)
-            {
-                responses.Clear();
+                this.testFixture.CurrentNode.Children.Add(logRequest);
+                logRequest.Parent = testFixture.CurrentNode;
+                this.testFixture.CurrentNode = logRequest;
             }
         }
 
-        ///// <summary>
-        ///// Base constructor which sets autoflush and header and footer of the trace file
-        ///// </summary>
-        ///// <param name="s">Stream</param>
-        ///// <param name="header">Header</param>
-        ///// <param name="footer">Footer</param>
-        ///// <param name="filter">LogFilter</param>
-        //public BaseListener(Stream s, string header, string footer)
-        //    : this(s, header, footer)
-        //{
-        //}
+        public virtual void LogRequestData(string data)
+        {
+            if (testFixture.CurrentNode != null && (testFixture.CurrentNode is Request))
+            {
+                (testFixture.CurrentNode as Request).Data = data;
+            }
+                
+        }
+
+        public virtual void LogResponse(HttpResponseMessage response)
+        {
+            int responseId = response.GetHashCode();
+            string data = Util.ReadTextFromHttpResponse(response).Result;
+            string statusCode = response.StatusCode.ToString();
+            string headerString = BuildHeadersString(response.Headers);
+            if (testFixture.CurrentNode != null && (testFixture.CurrentNode is Request) 
+                && ((Request)testFixture.CurrentNode).Response == null)
+            {
+                Response responseInfo = new Response();
+                responseInfo.HttpCode = statusCode;
+                responseInfo.Data = data;
+                responseInfo.Headers = headerString;
+                responseInfo.Id = responseId.ToString();
+
+                (testFixture.CurrentNode as Request).Response = responseInfo;
+
+            }
+        }
 
         /// <summary>
-        /// Destructor: Closes the listener
+        /// Testcase setup
         /// </summary>
-        ~BaseListener()
+        public virtual void LogTestCaseDescription()
         {
-            this.Close(false);
+            TestContext context = TestContext.CurrentContext;
+            //IDictionary temp = context.Test.Properties;
+            StringBuilder categoryStr = new StringBuilder(string.Empty);
+            string description = string.Empty;
+            string className = string.Empty;
+            string testName = string.Empty;
+            string methodFullName = context.Test.FullName;
+            string bug = string.Empty;
+            TestMethodLog newMethod = null;
+            if (context != null && context.Test != null)
+            {
+                newMethod = new TestMethodLog();
+                if (context.Test.Properties.ContainsKey(PropertyNames.Category))
+                {
+                    ArrayList categories = context.Test.Properties.Get(PropertyNames.Category) as ArrayList;
+                    if (categories != null && categories.Count > 0)
+                    {
+                        foreach (object item in categories)
+                        {
+                            categoryStr.Append(item).Append(",");
+                        }
+                        categoryStr.Remove(categoryStr.Length - 1, 1);
+                    }
+                    else
+                    {
+                        categoryStr.Append(context.Test.Properties.Get(PropertyNames.Category) as string);
+                    }
+                }
+                if (context.Test.Properties.ContainsKey(PropertyNames.Description))
+                {
+                    description = (string)context.Test.Properties.Get(PropertyNames.Description);
+                }
+                if (context.Test.Properties.ContainsKey(BugAttribute.PropertyName))
+                {
+                    bug = (string)context.Test.Properties.Get(BugAttribute.PropertyName);
+                }
+
+                methodFullName = context.Test.FullName;
+
+                className = context.Test.ClassName;
+                testName = context.Test.Name;
+                newMethod.Number = context.Test.ID;
+                newMethod.FullName = methodFullName;
+                newMethod.Description = description;
+                newMethod.Category = categoryStr.ToString();
+                newMethod.ClassName = className.ToString();
+                newMethod.TestName =  testName;
+                newMethod.Bug = bug;
+                this.testFixture.Children.Add(newMethod);
+                newMethod.Parent = testFixture;
+                testFixture.CurrentNode = newMethod;
+            }
+            //PrintTestCaseDescription(PrintedMethods[methodFullName]);
+        }
+
+        public virtual void LogTestCaseResult()
+        {
+            TestContext context = TestContext.CurrentContext;
+            string methodFullName = context.Test.FullName;
+            TestMethodLog currentMethod = null;
+            if (testFixture.CurrentNode != null && testFixture.CurrentNode is TestMethodLog)
+            {
+                currentMethod = testFixture.CurrentNode as TestMethodLog;
+            }
+            else if(testFixture.CurrentNode != null && (testFixture.CurrentNode is Request))
+            {
+                if (testFixture.CurrentNode.Parent is TestMethodLog)
+                    currentMethod = testFixture.CurrentNode.Parent as TestMethodLog;
+            }
+            if (currentMethod != null)
+            {
+                currentMethod.Result = context.Result.Outcome.Status.ToString();
+
+                //PrintTestCaseResult(context.Result.Outcome.Status.ToString());
+                if (!string.IsNullOrEmpty(context.Result.Message))
+                {
+                    currentMethod.Message = context.Result.Message;
+                }
+                if (!string.IsNullOrEmpty(context.Result.StackTrace))
+                {
+                    currentMethod.Stacktrace = context.Result.StackTrace;
+                }
+                testFixture.CurrentNode = currentMethod;
+            }
+        }
+
+        /// <summary>
+        /// Fixture setup
+        /// </summary>
+        public virtual void LogSetUpDescription()
+        {
+            TestContext context = TestContext.CurrentContext;
+            string methodFullName = context.Test.FullName;
+            testFixture.Name = context.Test.ClassName;
+            this.testFixture.SetUp.Name = methodFullName;
+            this.testFixture.CurrentNode = testFixture.SetUp;
+            
+        }
+
+        /// <summary>
+        /// Fixture teardown
+        /// </summary>
+        public virtual void LogTeardownDescription()
+        {
+            TestContext context = TestContext.CurrentContext;
+            string methodFullName = context.Test.FullName;
+            testFixture.TearDown = new SetUpTearDown() { Name = methodFullName, Parent = testFixture };
+            testFixture.CurrentNode = testFixture.TearDown;
+
+        }
+
+        public void WriteToOutput(TextWriter writer, Log.ParamLogLevel logLevel = Log.ParamLogLevel.Fail)
+        {
+            PrintHeader(writer);
+            PrintFixtureSetUp(writer);
+            foreach(var item in testFixture.Children)
+            {
+                if(item is TestMethodLog )
+                {
+                    TestMethodLog method = (TestMethodLog)item;
+                    if(logLevel == Log.ParamLogLevel.Fail)
+                    {
+                        if (method.Result == TestStatus.Inconclusive.ToString() || method.Result == TestStatus.Failed.ToString())
+                        {
+                            PrintChildrenLog(writer, item);
+                        }
+                    }
+                    else if(logLevel == Log.ParamLogLevel.Full)
+                    {
+                        PrintChildrenLog(writer, item);
+                    }
+                    
+                }
+            }
+            PrintFixtureTearDown(writer);
+            PrintSumary(writer);
+            PrintFooter(writer);
         }
         #endregion
 
         #region Write & WriteLine
-        public override void Write(string message)
+        //public override void Write(string message)
+        //{
+        //    this.Writer.Write(message);
+        //}
+        public void WriteLine(string message, string category)
         {
-            this.Writer.Write(message);
-        }
-        public override void WriteLine(string message, string category)
-        {
-            if (category.Equals("testcase") && message.Equals("SetUp"))
+            if(testFixture.CurrentNode != null)
             {
-                PrintTestCaseDescription();
+                CommonLog commonLog = new TestLibrary.CommonLog();
+                commonLog.Type = category;
+                commonLog.Time = DateTime.Now.ToString();
+                commonLog.Name = message;
+                testFixture.CurrentNode.Children.Add(commonLog);
+                commonLog.Parent = testFixture.CurrentNode;
             }
-            else if (category.Equals("testcase") && message.Equals("Teardown"))
-            {
-                PrintTestCaseResult();
-            }
-            else if (category.Equals("fixture") && message.Equals("Setup"))
-            {
-                PrintFixtureSetUp();
-            }
-            else if (category.Equals("fixture") && message.Equals("Teardown"))
-            {
-                PrintFixtureTearDown();
-            }
-            else if (category.Equals("test") && message.Equals("Setup"))
-            {
-                PrintSetUpDescription();
-            }
-            else if (category.Equals("test") && message.Equals("Teardown"))
-            {
-                PrintTeardownDescription();
-            }
-            else if (category.Equals("test") && message.Equals("Sumary"))
-            {
-                PrintSumary();
-            }
-            else if (category.Equals("RequestData"))
-            {
-                PrintRequestData(message);
-            }
-            else
-            {
-                Write(FormatMessage(message, category));
-                Writer.WriteLine();
-            }
+            
         }
 
-        public override void WriteLine(object message, string category)
-        {
-            if (category.Equals("Request"))
-            {
-                PrintRequest(message as HttpWebRequest);
-            }
-            else if (category.Equals("Response"))
-            {
-                PrintResponse(message as HttpWebResponse);
-            }
-        }
+        //public override void WriteLine(object message, string category)
+        //{
+        //    if (category.Equals("Request"))
+        //    {
+        //        PrintRequest(message as HttpWebRequest);
+        //    }
+        //    else if (category.Equals("Response"))
+        //    {
+        //        PrintResponse(message as HttpWebResponse);
+        //    }
+        //}
 
-        public override void WriteLine(string message)
+        protected void WriteLine(TextWriter writer, string message)
         {
-            Writer.WriteLine(message);
+            writer.WriteLine(message);
             //WriteLine(message, LogLevel.Info.ToString());
         }
 
-        public virtual string FormatMessage(string message, string category)
+        internal virtual void PrintHeader(TextWriter writer)
+        {
+
+        }
+
+        internal virtual void PrintFooter(TextWriter writer)
+        {
+
+        }
+
+        internal virtual string FormatMessage(CommonLog item)
         {
             StringBuilder str = new StringBuilder();
             str.Append("[");
-            str.Append(DateTime.Now.ToString(timeFormat));
+            str.Append(item.Time);
             str.Append(" ");
-            str.Append(string.Format("{0,-7}", category.ToUpper()));
+            str.Append(string.Format("{0,-7}", item.Type.ToUpper()));
             str.Append("] ");
             str.Append(new string(' ', Trace.IndentLevel * Trace.IndentSize));
-            str.Append(message);
+            str.Append(item.Name);
             return str.ToString();
         }
 
 
         #endregion
 
-        #region Close
-        ///// <summary>
-        ///// Closes the writer and writes the footer if available
-        ///// </summary>
-        //public void Close()
-        //{
-        //    Close(true);
-        //}
-
-        public void Close(bool suppressGC)
-        {
-            try
-            {
-                // Write Footer
-                if (!string.IsNullOrEmpty(footer))
-                {
-                    this.Writer.WriteLine(footer);
-                }
-
-                //WritePerformanceSummary();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            catch (IOException)
-            {
-            }
-
-            // Close the TraceListener
-            try
-            {
-                //this.Writer.Flush(); // not needed since autoflush is on
-                //base.Flush();
-                //base.Close();
-                base.Dispose();
-            }
-            catch (Exception)
-            {
-            }
-
-            if (suppressGC)
-            {
-                GC.SuppressFinalize(this);
-            }
-        }
-        #endregion
-
-        #region Helper Method
+        #region Protected Methods
         /// <summary>
         /// Based on the category and the already set LogFilter, should the message be shown.
         /// </summary>
@@ -233,275 +331,200 @@ namespace TestLibrary
         //    return logFilter.IsOK(category.ToLogLevel());
         //}
 
-        /// <summary>
-        /// Write Performance Summary
-        /// </summary>
-        //protected virtual void WritePerformanceSummary()
-        //{
-        //    if (!string.IsNullOrEmpty(PerformanceSummaryString))
-        //    {
-        //        this.Writer.WriteLine(performanceSummaryString);
-        //    }
-        //}
-
-        protected virtual void PrintRequest(HttpWebRequest request)
+        internal virtual void PrintRequest(TextWriter writer, Request requestInfo)
         {
-            int requestId = request.GetHashCode();
-            string url = request.RequestUri.ToString();
-            string method = request.Method;
-            string headerString = BuildHeadersString(request.Headers);
-
-            Dictionary<string, string> requestInfo = new Dictionary<string, string>();
-            requestInfo.Add("Url", url);
-            requestInfo.Add("Method", method);
-            requestInfo.Add("Headers", headerString);
-            requestInfo.Add("Id", requestId.ToString());
-
-            Requests[requestId] = requestInfo;
-
-            PrintRequest(requestInfo);
-        }
-
-        protected virtual void PrintRequest(Dictionary<string, string> requestInfo)
-        {
-            WriteLine(string.Format("[{0}]: {1}", requestInfo["Method"], requestInfo["Url"]));
-            WriteLine(string.Format("    Headers:"));
-            string data = "        " + requestInfo["Headers"];
+            WriteLine(writer, string.Format("[{0}]: {1}", requestInfo.Method, requestInfo.Url));
+            WriteLine(writer, string.Format("    Headers:"));
+            string data = "        " + requestInfo.Headers;
             data = data.Replace("\n", "\n        ");
-            WriteLine(data);
+            WriteLine(writer, data);
+
+            PrintRequestData(writer, requestInfo.Data);
+            if (requestInfo.Children != null && requestInfo.Children.Count > 0)
+            {
+                foreach (var child in requestInfo.Children)
+                {
+                    PrintChildrenLog(writer, child);
+                }
+            }
         }
 
-        protected static string BuildHeadersString(WebHeaderCollection headers)
+        protected internal static string BuildHeadersString(HttpRequestHeaders headers)
         {
             StringBuilder headerString = new StringBuilder();
 
-            //for (int i = 0; i < headers.Count; i++)
-            //{
-            //    String header = headers.GetKey(i);
-            //    String[] values = headers.GetValues(header);
-            //    headerString.Append(header + ":");
-            //    if (values.Length > 0)
-            //    {
-            //        for (int j = 0; j < values.Length; j++)
-            //        {
-            //            headerString.Append(values[j] + ",");
-            //        }
-            //        headerString.Remove(headerString.Length - 1, 1);
-            //    }
-            //    headerString.Append("\n");
-            //}
-            foreach(string header in headers.AllKeys)
+            foreach(var header in headers)
             {
-                headerString.Append(header + ":" + headers[header]);
+                headerString.Append(header.Key + ":" + header.Value);
+                headerString.Append("\n");
             }
-            headerString.Append("\n");
-
             return headerString.ToString();
         }
 
-        protected virtual void PrintResponse(HttpWebResponse response)
+        protected internal static string BuildHeadersString(HttpResponseHeaders headers)
         {
-            int responseId = response.GetHashCode();
-            string data = Util.ReadTextFromHttpResponse(response);
-            string statusCode = response.StatusCode.ToString();
-            string headerString = BuildHeadersString(response.Headers);
-            Dictionary<string, string> responseInfo = new Dictionary<string, string>();
-            responseInfo.Add("HttpCode", statusCode);
-            responseInfo.Add("Data", data);
-            responseInfo.Add("Headers", headerString);
-            responseInfo.Add("Id", responseId.ToString());
+            StringBuilder headerString = new StringBuilder();
 
-            Responses[responseId] = responseInfo;
-
-            PrintResponse(responseInfo);
+            foreach (var header in headers)
+            {
+                headerString.Append(header.Key + ":" + header.Value);
+                headerString.Append("\n");
+            }
+            return headerString.ToString();
         }
 
-        protected virtual void PrintResponse(Dictionary<string, string> responseInfo)
+
+        internal virtual void PrintResponse(TextWriter writer, Response responseInfo)
         {
-            WriteLine("[RESPONSE]:");
-            WriteLine(string.Format("    Http code: {0}", responseInfo["HttpCode"]));
-            WriteLine(string.Format("    Response data:"));
-            string data = "        " + responseInfo["Data"];
+            WriteLine(writer, "[RESPONSE]:");
+            WriteLine(writer, string.Format("    Http code: {0}", responseInfo.HttpCode));
+            WriteLine(writer, string.Format("    Response data:"));
+            string data = "        " + responseInfo.Data;
             string formatedString = data.Replace("\n", "\n        ");
-            WriteLine(formatedString);
-            WriteLine(string.Format("    Header:"));
-            data = "        " + responseInfo["Headers"];
+            WriteLine(writer, formatedString);
+            WriteLine(writer, string.Format("    Header:"));
+            data = "        " + responseInfo.Headers;
             formatedString = data.Replace("\n", "\n        ");
-            WriteLine(formatedString);
+            WriteLine(writer, formatedString);
         }
 
-        protected virtual void PrintRequestData(string data)
+        internal virtual void PrintRequestData(TextWriter writer, string data)
         {
-            WriteLine(string.Format("    Request Data:"));
+            WriteLine(writer, string.Format("    Request Data:"));
 
             string formatedString = ("        " + data).Replace("\n", "\n        ");
-            WriteLine(formatedString);
+            WriteLine(writer, formatedString);
         }
 
-        protected virtual void PrintTestCaseDescription()
+
+
+        internal virtual void PrintTestCaseDescription(TextWriter writer, TestMethodLog newMethod)
         {
-            TestContext context = TestContext.CurrentContext;
+            WriteLine(writer, TestCaseDescriptionLine);
             //IDictionary temp = context.Test.Properties;
-            StringBuilder categoryStr = new StringBuilder(string.Empty);
-            string description = string.Empty;
-            StringBuilder className = new StringBuilder(string.Empty);
-            string testName = string.Empty;
-            string methodFullName = context.Test.FullName;
-            Dictionary<string, string> newMethod = null;
-            if (context != null && context.Test != null)
+            PrintTestCaseDescriptionLine(writer, "Test number", newMethod.Number);
+            PrintTestCaseDescriptionLine(writer, "Category", newMethod.Category);
+            PrintTestCaseDescriptionLine(writer, "Bug", newMethod.Bug);
+            PrintTestCaseDescriptionLine(writer, "Description", newMethod.Description);
+            PrintTestCaseDescriptionLine(writer, "Test Class", newMethod.ClassName);
+            PrintTestCaseDescriptionLine(writer, "Test method", newMethod.TestName);
+
+            if (newMethod.Children != null && newMethod.Children.Count > 0)
             {
-                newMethod = new Dictionary<string, string>();
-                if (context.Test.Properties.ContainsKey("_CATEGORIES"))
+                foreach (var child in newMethod.Children)
                 {
-                    ArrayList categories = context.Test.Properties.Get("_CATEGORIES") as ArrayList;
-                    if (categories != null && categories.Count > 0)
-                    {
-                        foreach (object item in categories)
-                        {
-                            categoryStr.Append(item).Append(",");
-                        }
-                        categoryStr.Remove(categoryStr.Length - 1, 1);
-                    }
-                } 
-                if (context.Test.Properties.ContainsKey("_DESCRIPTION"))
-                {
-                    description = (string)context.Test.Properties.Get("_DESCRIPTION");
+                    PrintChildrenLog(writer, child);
                 }
-                methodFullName = context.Test.FullName;
-                string[] tempStr = methodFullName.Split('.');
-                if (tempStr.Length > 1)
-                {
-                    for (int i = 0; i < tempStr.Length - 1; i++)
-                    {
-                        className.Append(tempStr[i]).Append('.');
-                    }
-                    className.Remove(className.Length - 1, 1);
-                }
-                testName = context.Test.Name;
-                newMethod.Add(NumberKey, (PrintedMethods.Count).ToString());
-                newMethod.Add(FullNameKey, methodFullName);
-                newMethod.Add(DescriptionKey, description);
-                newMethod.Add(CategoryKey, categoryStr.ToString());
-                newMethod.Add(ClassNameKey, className.ToString());
-                newMethod.Add(TestNameKey, testName);
-                PrintedMethods[methodFullName] = newMethod;
             }
-            PrintTestCaseDescription(PrintedMethods[methodFullName]);
-        }
-
-        protected virtual void PrintTestCaseDescription(Dictionary<string, string> newMethod)
-        {
-            WriteLine(TestCaseDescriptionLine);
-            //IDictionary temp = context.Test.Properties;
-            PrintTestCaseDescriptionLine("Test number", newMethod["Number"]);
-            PrintTestCaseDescriptionLine("Category", newMethod["Category"]);
-            PrintTestCaseDescriptionLine("Description", newMethod["Description"]);
-            PrintTestCaseDescriptionLine("Test Class", newMethod["ClassName"]);
-            PrintTestCaseDescriptionLine("Test method", newMethod["TestName"]);
-
-        }
-
-        protected virtual void PrintTestCaseResult()
-        {
-            TestContext context = TestContext.CurrentContext;
-            //IDictionary temp = context.Test.Properties;
-            //StringBuilder categoryStr = new StringBuilder(string.Empty);
-            //string description = string.Empty;
-            //StringBuilder className = new StringBuilder(string.Empty);
-            //string testName = string.Empty;
-            string methodFullName = context.Test.FullName;
-            Dictionary<string, string> currentMethod = null;
-            if (PrintedMethods.ContainsKey(methodFullName))
+            this.PrintTestCaseResult(writer, newMethod.Result);
+            if (!string.IsNullOrEmpty(newMethod.Message))
             {
-                currentMethod = PrintedMethods[methodFullName];
-                currentMethod[ResultKey] = context.Result.Outcome.Status.ToString();
+                this.PrintTestCaseMessage(writer, newMethod.Message);
+            }
 
-                PrintTestCaseResult(context.Result.Outcome.Status.ToString());
-                if (!string.IsNullOrEmpty(context.Result.Message))
-                {
-                    PrintTestCaseMessage(context.Result.Message);
-                }
-                if (!string.IsNullOrEmpty(context.Result.StackTrace))
-                {
-                    PrintTestCaseStackTrace(context.Result.StackTrace);
-                }
+            if (!string.IsNullOrEmpty(newMethod.Stacktrace))
+            {
+                this.PrintTestCaseStackTrace(writer, newMethod.Stacktrace);
             }
         }
 
-        protected virtual void PrintTestCaseResult(string result)
+        internal void PrintChildrenLog(TextWriter writer, LogModel item)
         {
-            WriteLine(string.Format("Test result: {0}", result));
-
-        }
-
-        protected virtual void PrintTestCaseMessage(string message)
-        {
-            WriteLine(string.Format("Message: {0}", message));
-        }
-
-        protected virtual void PrintTestCaseStackTrace(string stackTrace)
-        {
-            WriteLine(string.Format("Stack trace: {0}", stackTrace));
-        }
-
-        protected virtual void PrintSetUpDescription()
-        {
-            WriteLine(TestCaseDescriptionLine);
-            TestContext context = TestContext.CurrentContext;
-
-            //IDictionary temp = context.Test.Properties;
-            string methodFullName = context.Test.FullName;
-            string[] tempStr = methodFullName.Split('.');
-            if (tempStr.Length > 1)
+            if (item is Request)
             {
-                PrintTestCaseDescriptionLine("Test fixture", tempStr[0]);
+                PrintRequest(writer, (Request)item);
+            }
+            else if(item is TestMethodLog)
+            {
+                PrintTestCaseDescription(writer, (TestMethodLog)item);
+            }
+            else if (item is CommonLog)
+            {
+                WriteLine(writer, FormatMessage((CommonLog)item));
             }
         }
 
-        protected virtual void PrintTeardownDescription()
+        internal virtual void PrintTestCaseResult(TextWriter writer, string result)
         {
-            WriteLine(TestCaseDescriptionLine);
-            TestContext context = TestContext.CurrentContext;
+            WriteLine(writer, string.Format("Test result: {0}", result));
 
-            //IDictionary temp = context.Test.Properties;
-            string methodFullName = context.Test.FullName;
-            string[] tempStr = methodFullName.Split('.');
-            if (tempStr.Length > 1)
-            {
-                PrintTestCaseDescriptionLine("End Test fixture", tempStr[0]);
-            }
         }
 
-        protected virtual void PrintSumary()
+        internal virtual void PrintTestCaseMessage(TextWriter writer, string message)
         {
-            IEnumerable<KeyValuePair<string, Dictionary<string, string>>> temp = PrintedMethods.AsQueryable();
-            IEnumerable<Dictionary<string, string>> failedQuery =
-                PrintedMethods.Where(x => !x.Value[ResultKey].Equals(TestStatus.Passed.ToString())).
-                Select(x => x.Value);
-            List<Dictionary<string, string>> failedList = failedQuery.ToList();
-            int total = printedMethods.Count;
+            WriteLine(writer, string.Format("Message: {0}", message));
+        }
+
+        internal virtual void PrintTestCaseStackTrace(TextWriter writer, string stackTrace)
+        {
+            WriteLine(writer, string.Format("Stack trace: {0}", stackTrace));
+        }
+
+        internal virtual void PrintSumary(TextWriter writer)
+        {
+            //IEnumerable<KeyValuePair<string, Dictionary<string, string>>> temp = PrintedMethods.AsQueryable();
+            //IEnumerable<Dictionary<string, string>> failedQuery =
+            //    PrintedMethods.Where(x => !x.Value[ResultKey].Equals(TestStatus.Passed.ToString())).
+            //    Select(x => x.Value);
+            var failedQuery = from t in testFixture.Children
+                              where (t is TestMethodLog)
+                              let method = (TestMethodLog)t
+                              where (method.Result != null && method.Result == TestStatus.Failed.ToString())
+                              select method;
+            List<TestMethodLog> failedList = failedQuery.ToList();
+            int total = testFixture.Children.Count;
             int failed = failedList.Count;
-            int inconclusive = PrintedMethods.Where(x => x.Value[ResultKey].Equals(TestStatus.Inconclusive.ToString())).
-                Select(x => x.Value).Count();
-            int skipped = PrintedMethods.Where(x => x.Value[ResultKey].Equals(TestStatus.Skipped.ToString())).
-                Select(x => x.Value).Count();
-            int passed = total - failed - skipped;
-            PrintFailedTestList(failedList);
-            PrintTestSumary(total, failed, inconclusive, skipped, passed);
+            int inconclusive = testFixture.Children
+                .Where(x => (x is TestMethodLog && ((TestMethodLog)x).Result.Equals(TestStatus.Inconclusive.ToString())))
+                .Select(x => x)
+                .Count();
+            int skipped = testFixture.Children
+                .Where(x => (x is TestMethodLog && ((TestMethodLog)x).Result.Equals(TestStatus.Skipped.ToString())))
+                .Select(x => x).Count();
+            int passed = total - failed - skipped - inconclusive;
+            PrintFailedTestList(writer, failedList);
+            PrintTestSumary(writer, total, failed, inconclusive, skipped, passed);
         }
 
-        protected virtual void PrintFailedTestList(List<Dictionary<string, string>> testList)
+        internal virtual void PrintSetUpDescription(TextWriter writer)
+        {
+            WriteLine(writer, TestCaseDescriptionLine);
+            //IDictionary temp = context.Test.Properties;
+            string methodFullName = testFixture.SetUp.Name;
+            string[] tempStr = methodFullName.Split('.');
+            if (tempStr.Length > 1)
+            {
+                PrintTestCaseDescriptionLine(writer, "Test project", tempStr[0]);
+            }
+            
+        }
+
+        internal virtual void PrintTeardownDescription(TextWriter writer)
+        {
+            WriteLine(writer, TestCaseDescriptionLine);
+            
+            string methodFullName = testFixture.Name;
+            string[] tempStr = methodFullName.Split('.');
+            if (tempStr.Length > 1)
+            {
+                PrintTestCaseDescriptionLine(writer, "End Test fixture", tempStr[0]);
+            }
+            
+        }
+
+
+        internal virtual void PrintFailedTestList(TextWriter writer, List<TestMethodLog> testList)
         {
             //WriteLine(TestCaseDescriptionLine);
-            WriteLine("All failed tests");
-            WriteLine(TestCaseDescriptionLine);
-            foreach (Dictionary<string, string> testcase in testList)
-                WriteLine(GetTableCell(testcase[FullNameKey], TestCaseDescriptionLine.Length - 1) + "|");
-            WriteLine(TestCaseDescriptionLine);
+            WriteLine(writer, "All failed tests");
+            WriteLine(writer, TestCaseDescriptionLine);
+            foreach (TestMethodLog testcase in testList)
+                WriteLine(writer, GetTableCell(testcase.Number , TestCaseDescriptionLine.Length - 1) + "|");
+            WriteLine(writer, TestCaseDescriptionLine);
 
         }
 
-        protected virtual void PrintTestSumary(int total, int failed, int inconclusive, int skipped, int passed)
+        internal virtual void PrintTestSumary(TextWriter writer, int total, int failed, int inconclusive, int skipped, int passed)
         {
             string title = string.Concat(GetTableCell("Total"), GetTableCell("Failed"),
                 GetTableCell("Inconclusive"), GetTableCell("Skipped"), GetTableCell("Passed"));
@@ -524,30 +547,42 @@ namespace TestLibrary
                 info += " ";
             }
             info += "|";
-            WriteLine("Sumary");
-            WriteLine(TestCaseDescriptionLine);
-            WriteLine(title);
-            WriteLine(TestCaseDescriptionLine);
-            WriteLine(info);
-            WriteLine(TestCaseDescriptionLine);
-
+            WriteLine(writer, "Sumary");
+            WriteLine(writer, TestCaseDescriptionLine);
+            WriteLine(writer, title);
+            WriteLine(writer, TestCaseDescriptionLine);
+            WriteLine(writer, info);
+            WriteLine(writer, TestCaseDescriptionLine);
         }
 
-        protected virtual void PrintFixtureSetUp()
+        internal virtual void PrintFixtureSetUp(TextWriter writer)
         {
-            WriteLine(TestCaseDescriptionLine);
-            TestContext context = TestContext.CurrentContext;
-            PrintTestCaseDescriptionLine("Test fixture", context.Test.FullName);
+            WriteLine(writer, TestCaseDescriptionLine);
+            
+            PrintTestCaseDescriptionLine(writer,"Test fixture", testFixture.Name);
+            if (testFixture.SetUp.Children != null && testFixture.SetUp.Children.Count > 0)
+            {
+                foreach (var child in testFixture.SetUp.Children)
+                {
+                    PrintChildrenLog(writer, child);
+                }
+            }
         }
 
-        protected virtual void PrintFixtureTearDown()
+        internal virtual void PrintFixtureTearDown(TextWriter writer)
         {
-            WriteLine(TestCaseDescriptionLine);
-            TestContext context = TestContext.CurrentContext;
-            PrintTestCaseDescriptionLine("End Test fixture", context.Test.FullName);
+            WriteLine(writer, TestCaseDescriptionLine);
+            PrintTestCaseDescriptionLine(writer, "Test fixture", testFixture.Name);
+            if (testFixture.TearDown.Children != null && testFixture.TearDown.Children.Count > 0)
+            {
+                foreach (var child in testFixture.TearDown.Children)
+                {
+                    PrintChildrenLog(writer, child);
+                }
+            }
         }
 
-        protected string GetTableCell(string info, int maxLength = TitleLength)
+        internal string GetTableCell(string info, int maxLength = TitleLength)
         {
             string content = "|  " + info;
             int length = content.Length;
@@ -558,7 +593,7 @@ namespace TestLibrary
             return content;
         }
 
-        protected virtual void PrintTestCaseDescriptionLine(string title, string info)
+        internal virtual void PrintTestCaseDescriptionLine(TextWriter writer, string title, string info)
         {
             //Log.Write("|   Test Class  | ");
             string result = "|  " + title;
@@ -576,42 +611,12 @@ namespace TestLibrary
                 result += " ";
             }
             result += "|";
-            WriteLine(result);
-            WriteLine(TestCaseDescriptionLine);
+            WriteLine(writer, result);
+            WriteLine(writer, TestCaseDescriptionLine);
         }
 
-        
-
-        protected static Dictionary<string, Dictionary<string, string>> PrintedMethods
-        {
-            get
-            {
-                if (printedMethods == null)
-                    printedMethods = new Dictionary<string, Dictionary<string, string>>();
-                return printedMethods;
-            }
-        }
-
-        protected static Dictionary<int, Dictionary<string, string>> Requests
-        {
-            get
-            {
-                if (requests == null)
-                    requests = new Dictionary<int, Dictionary<string, string>>();
-                return requests;
-            }
-        }
-
-        protected static Dictionary<int, Dictionary<string, string>> Responses
-        {
-            get
-            {
-                if (responses == null)
-                    responses = new Dictionary<int, Dictionary<string, string>>();
-
-                return responses;
-            }
-        }
+        protected static Dictionary<string, object> setUpMethod;
+        protected static Dictionary<string, object> tearDownMethod;
         #endregion
 
         #region Members
@@ -625,10 +630,8 @@ namespace TestLibrary
         /// Value of Footer
         /// </summary>
         protected string footer;
-
-        protected static Dictionary<string, Dictionary<string, string>> printedMethods;
-        protected static Dictionary<int, Dictionary<string, string>> requests;
-        protected static Dictionary<int, Dictionary<string, string>> responses;
+        
+        internal TestFixture testFixture;
 
         /// <summary>
         /// Value of Footer
@@ -644,6 +647,96 @@ namespace TestLibrary
                 footer = value;
             }
         }
+
+        public virtual string Header { get; set; }
         #endregion
+
+        
     }
+    #region LogModel
+    internal class LogModel
+    {
+        public string Type;
+        public string Name;
+        public LogTree Parent;
+    }
+
+    internal class LogTree: LogModel
+    {
+        internal List<LogModel> Children;
+
+        internal LogTree()
+        {
+            Children = new List<LogModel>();
+        }
+    }
+
+    internal class TestFixture : LogTree
+    {
+        internal SetUpTearDown SetUp = new SetUpTearDown();
+        internal SetUpTearDown TearDown;
+        internal LogTree CurrentNode;
+
+        internal TestFixture() : base()
+        {
+            Type = "TestFixture";
+            CurrentNode = SetUp;
+            SetUp.Parent = this;
+        }
+    }
+
+    internal class TestMethodLog : LogTree
+    {
+        internal TestMethodLog() : base()
+        {
+            Type = "TestMethod";
+        }
+
+        internal SetUpTearDown SetUp;
+        internal SetUpTearDown TearDown;
+
+        internal string Number;
+        internal string FullName;
+        internal string Description;
+        internal string Bug;
+        internal string TestName;
+        internal string ClassName;
+        internal string Category;
+        internal string Result;
+        internal string Message;
+        internal string Stacktrace;
+    }
+
+    internal class Request : LogTree
+    {
+        internal string Url;
+        internal string Method;
+        internal string Headers;
+        internal string Id;
+        internal string Data;
+        internal Response Response;
+    }
+
+    internal class SetUpTearDown : LogTree
+    {
+        internal SetUpTearDown() : base()
+        {
+            Type = "SetUpTearDown";
+        }
+    }
+
+    internal class Response: LogModel
+    {
+        internal string HttpCode;
+        internal string Data;
+        internal string Headers;
+        internal string Id;
+    }
+
+    internal class CommonLog: LogModel
+    {
+        internal string Time;
+    }
+    #endregion
+
 }

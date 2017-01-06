@@ -18,8 +18,8 @@ namespace TestLibrary
         /// </summary>
         /// <param name="header"></param>
         /// <param name="footer"></param>
-        public TextLogListener(StreamWriter s, string header = null, string footer = null)
-            : base(s, header, footer)
+        public TextLogListener(string header = null, string footer = null)
+            : base(header, footer)
         {
         }
 
@@ -31,6 +31,12 @@ namespace TestLibrary
         //public TextLogListener(StreamWriter s, string header, string footer)
         //    : base(s, header, footer)
         //{
+        //}
+
+        //internal override void PrintFixtureTearDown()
+        //{
+        //    base.PrintFixtureTearDown();
+        //    PrintSumary();
         //}
         #endregion
     }
