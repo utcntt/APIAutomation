@@ -30,21 +30,25 @@ An API automation testing framework based on NUnit.
 ## How to execute test cases
 1. Quick execution: use TestExplorer of Visual Studio.
 2. Command line/batch execution
-- Windows: go to the project folder 
+  * Windows: go to the project folder 
 ```
 dotnet test project.json
-
+```
 - Execution with log(none|failed|full):
 ```
+
 dotnet test project.json -params "log=full"
+```
 
 - Execution with a Bug ID:
 ```
 ddotnet test project.json -where "Bug=123"
+```
 
 - Regresion test Execution:
 ```
 dotnet test project.json -params "regression=true"
+```
 
 ##License: GNU
 ##Author: Truong Pham (utcntt[at]gmail[dot]com)
