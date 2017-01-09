@@ -1,0 +1,366 @@
+body
+{
+    font-family:'Lucida Console';
+    font-size:small;
+    background-color: White;
+}
+pre
+{
+    font-family:'Lucida Console';
+    font-size: small;
+}
+a:link 
+{ 
+    font-family: "trebuchet ms", Arial, Helvetica, sans-serif; 
+    color: #0F00DA; 
+} 
+
+a:visited 
+{ 
+    font-family: "trebuchet ms", Arial, Helvetica, sans-serif; 
+    color: #4F4F4F; 
+} 
+
+a:active 
+{ 
+    font-family: "trebuchet ms", Arial, Helvetica, sans-serif; 
+    color: #a05050; 
+}
+
+A:hover 
+{
+    color: #F11F47; 
+    font-family: "trebuchet ms", Arial, Helvetica, sans-serif; 
+} 
+
+.page_title
+{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 25pt;
+    color: #F0F0F0;
+    font-weight: bold;
+}
+
+table
+{
+	width: 100%;
+	white-space: nowrap;
+	border: 1px;
+	border-style: solid;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: small;
+}
+
+.trone
+{
+	vertical-align: top;
+	background-color:#F2F2F2;
+}
+
+.trtwo
+{
+	vertical-align: top;
+	background-color:#FAFAFA;
+}
+
+.levHeader
+{
+	width: 50px;
+	vertical-align: top;
+	font-weight: bold;
+	font-size: small;
+}
+
+.timHeader
+{
+	width: 80px;
+	vertical-align: top;
+	font-weight: bold;
+	font-size: medium;
+}
+
+.msgHeader
+{
+	white-space: pre;
+	vertical-align: top;
+	font-weight: bold;
+	font-size: small;
+}
+
+.lev
+{
+	width: 50px;
+	vertical-align: top;
+}
+
+.tim
+{
+	width: 80px;
+	vertical-align: top;
+}
+
+.msg
+{
+	width: auto;
+	white-space: pre;
+	vertical-align: top;
+}
+
+.info
+{
+}
+
+.pass
+{
+    color: green;
+}
+
+.success
+{
+    color:  #00AA00;
+}
+.warn
+{
+    color: orange;
+}
+
+.case
+{
+    color: blue;
+}
+.trace
+{
+    color: #997799;
+}
+.debug
+{
+    color: gray;
+}
+.error
+{
+    color: maroon;
+}
+.fail
+{
+    color: red; 
+}
+.fatal
+{
+    color: #FF5522;
+}
+.block
+{
+    color: #FF5522;
+}
+.reprostep
+{
+    color: brown;
+}
+.repro
+{
+    color: brown;
+}
+.verify
+{
+    color:darkblue;
+}
+.enter
+{
+    color: darkgray;
+}
+.exit
+{
+    color: darkgray;
+}
+.time
+{
+    color: darkcyan;
+}
+.ETH
+{
+    color: gray;
+}
+
+.testFailed 
+{
+    position: fixed;
+    top:0;
+    left:60%;
+    max-height: 80%;
+    border:thin;
+    border-width:1px;
+    width:40%;
+    background-color:gold;
+    overflow:scroll;
+}
+
+.sumary 
+{
+    position: fixed;
+    top:80%;
+    left:60%;
+    border:thin;
+    border-width:1px;
+    width: 40%;
+    background-color:burlywood
+}
+
+label.request
+{
+    background: url("http-icon.png") no-repeat !important;
+    background-position: 18px 0 !important;
+}
+
+label.fixture
+{
+    background: url("config.jpg") no-repeat !important;
+    background-position: 18px 0 !important;
+}
+
+label.response
+{
+    background: url("download.png") no-repeat !important;
+    background-position: 18px 0 !important;
+}
+
+label.testcase
+{
+    background: url("test_on.gif") no-repeat !important;
+    background-position: 18px 0 !important;
+}
+
+#table_container
+{
+    float:left;
+    margin-right:5px;
+}
+
+.css-treeview ul,
+.css-treeview li
+{
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+ 
+.css-treeview input
+{
+    position: absolute;
+    opacity: 0;
+}
+ 
+.css-treeview
+{
+    font: normal 14px "Segoe UI", Arial, Sans-serif;
+    width: 60%;
+    /*-moz-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;*/
+}
+ 
+.css-treeview a
+{
+    color: #00f;
+    text-decoration: none;
+}
+ 
+.css-treeview a:hover
+{
+    text-decoration: underline;
+}
+ 
+.css-treeview input + label + ul
+{
+    margin: 0 0 0 22px;
+}
+ 
+.css-treeview input ~ ul
+{
+    display: none;
+}
+ 
+.css-treeview label,
+.css-treeview label::before
+{
+    cursor: pointer;
+}
+ 
+.css-treeview input:disabled + label
+{
+    cursor: default;
+    opacity: .6;
+}
+ 
+.css-treeview input:checked:not(:disabled) ~ ul
+{
+    display: block;
+}
+ 
+.css-treeview label,
+.css-treeview label::before
+{
+    background: url("icons.png") no-repeat;
+}
+ 
+.css-treeview label,
+.css-treeview a,
+.css-treeview label::before
+{
+    display: inline-block;
+    height: 16px;
+    line-height: 16px;
+    vertical-align: middle;
+}
+ 
+.css-treeview label
+{
+    background-position: 18px 0;
+}
+ 
+.css-treeview label::before
+{
+    content: "";
+    width: 16px;
+    margin: 0 22px 0 0;
+    vertical-align: middle;
+    background-position: 0 -32px;
+}
+ 
+.css-treeview input:checked + label::before
+{
+    background-position: 0 -16px;
+}
+
+textarea 
+{
+    width: 100%;
+    height: auto;
+    min-height: 80px;
+
+}
+
+div p {
+    text-align: center;
+    font-size: medium;
+}
+ 
+/* webkit adjacent element selector bugfix */
+@media screen and (-webkit-min-device-pixel-ratio:0)
+{
+    .css-treeview 
+    {
+        -webkit-animation: webkit-adjacent-element-selector-bugfix infinite 1s;
+    }
+ 
+    @-webkit-keyframes webkit-adjacent-element-selector-bugfix 
+    {
+        from 
+        { 
+            padding: 0;
+        } 
+        to 
+        { 
+            padding: 0;
+        }
+    }
+}
