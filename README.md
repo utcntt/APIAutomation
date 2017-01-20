@@ -15,6 +15,11 @@ An API automation testing framework based on NUnit.
 2. .Net Core.
 3. Newton.Json
 
+## Prerequisites
+1. [.Net Core](https://docs.microsoft.com/en-us/dotnet/articles/core/)
+2. [Visual Studio](https://code.visualstudio.com/)
+3. [A Git client tool](https://git-scm.com/)
+
 ## How to write test cases
 1. Clone the framework
 2. Create a .NetCore Command Line project 
